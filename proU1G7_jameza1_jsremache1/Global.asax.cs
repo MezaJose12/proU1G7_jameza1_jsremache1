@@ -25,6 +25,7 @@ namespace proU1G7_jameza1_jsremache1
             /*Iniciar*/
             roles(db);
             Csuper(db);
+            Cadministrador(db);
             arol(db);
 
             /*Esto hay que consultar*/
@@ -44,6 +45,22 @@ namespace proU1G7_jameza1_jsremache1
                 {
                     UserName = "SuperAdmin",
                     Email = "jameza1@espe.edu.ec"
+                };
+                /*envia los datos a crear y la contraseña xd*/
+                usermanager.Create(user, "P@ssw0rd");
+            }
+        }
+        private void Cadministrador(ApplicationDbContext db)
+        {
+            var usermanager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
+            var user = usermanager.FindByName("Administrador");
+            /*si no existe crealo*/
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = "Administrador",
+                    Email = "jsremache1@espe.edu.ec"
                 };
                 /*envia los datos a crear y la contraseña xd*/
                 usermanager.Create(user, "P@ssw0rd");
@@ -77,6 +94,7 @@ namespace proU1G7_jameza1_jsremache1
             var usermanager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
             var rolManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
             var superadmin = usermanager.FindByName("SuperAdmin");
+            var administrador = usermanager.FindByName("Administrador");
             if(superadmin != null)
             {
                 if (!usermanager.IsInRole(superadmin.Id, "view"))
@@ -92,6 +110,24 @@ namespace proU1G7_jameza1_jsremache1
                     if (!usermanager.IsInRole(superadmin.Id, "delete"))
                     {
                         usermanager.AddToRole(superadmin.Id, "delete");
+                    }
+                    if (!usermanager.IsInRole(superadmin.Id, "create"))
+                    {
+                        usermanager.AddToRole(superadmin.Id, "create");
+                    }
+                }
+            }
+            if(administrador != null)
+            {
+                if(!usermanager.IsInRole(administrador.Id, "view"))
+                {
+                    if (!usermanager.IsInRole(superadmin.Id, "view"))
+                    {
+                        usermanager.AddToRole(superadmin.Id, "view");
+                    }
+                    if (!usermanager.IsInRole(superadmin.Id, "edit"))
+                    {
+                        usermanager.AddToRole(superadmin.Id, "edit");
                     }
                     if (!usermanager.IsInRole(superadmin.Id, "create"))
                     {

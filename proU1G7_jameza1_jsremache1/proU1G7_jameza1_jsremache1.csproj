@@ -181,6 +181,7 @@
     <Compile Include="Controllers\MarcaTarjetasController.cs" />
     <Compile Include="Controllers\MetodoPagoController.cs" />
     <Compile Include="Controllers\ModeloAeronaveController.cs" />
+    <Compile Include="Controllers\MonedaController.cs" />
     <Compile Include="Controllers\RutasController.cs" />
     <Compile Include="Controllers\TipoDocumentoIdentidadsController.cs" />
     <Compile Include="Controllers\TramoItinerariosController.cs" />
@@ -451,6 +452,11 @@
     <Content Include="Views\MarcaTarjetas\Details.cshtml" />
     <Content Include="Views\MarcaTarjetas\Edit.cshtml" />
     <Content Include="Views\MarcaTarjetas\Index.cshtml" />
+    <Content Include="Views\Moneda\Create.cshtml" />
+    <Content Include="Views\Moneda\Delete.cshtml" />
+    <Content Include="Views\Moneda\Details.cshtml" />
+    <Content Include="Views\Moneda\Edit.cshtml" />
+    <Content Include="Views\Moneda\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
