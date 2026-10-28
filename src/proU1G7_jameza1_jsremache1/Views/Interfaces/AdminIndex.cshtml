@@ -1,0 +1,19 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Administracion";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 17 - Administracion</p><h1 id="page-title" class="h2 fw-bold">Panel administrativo</h1><p class="text-secondary">Acceso a los modulos de mantenimiento, gestion y reportes.</p></header>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><p class="text-secondary mb-1">Vuelos</p><strong class="display-6">@Model.TotalVuelos</strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><p class="text-secondary mb-1">Aeronaves</p><strong class="display-6">@Model.TotalAeronaves</strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><p class="text-secondary mb-1">Reservas</p><strong class="display-6">@Model.TotalReservas</strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><p class="text-secondary mb-1">Pasajeros</p><strong class="display-6">@Model.TotalPasajeros</strong></div></div></div>
+    </div>
+    <div class="row g-3">
+        <div class="col-12 col-md-6"><a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminFlights")"><div class="card-body"><h2 class="h5">Vuelos y rutas</h2><p class="text-secondary mb-0">Horarios, frecuencias, aeropuertos e itinerarios.</p></div></a></div>
+        <div class="col-12 col-md-6"><a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminAircraft")"><div class="card-body"><h2 class="h5">Flota</h2><p class="text-secondary mb-0">Aeronaves, modelos y configuracion de asientos.</p></div></a></div>
+        <div class="col-12 col-md-6"><a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminManagement")"><div class="card-body"><h2 class="h5">Gestion</h2><p class="text-secondary mb-0">Catalogos y accesos operativos.</p></div></a></div>
+        <div class="col-12 col-md-6"><a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminReports")"><div class="card-body"><h2 class="h5">Reportes</h2><p class="text-secondary mb-0">Resumen de registros disponibles.</p></div></a></div>
+    </div>
+</main>

@@ -1,0 +1,16 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Reportes";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 21 - Administracion</p><h1 id="page-title" class="h2 fw-bold">Reportes y estadisticas</h1><p class="text-secondary">Conteos actuales de datos almacenados. Los indicadores no reemplazan reportes financieros o exportaciones.</p></div>@Html.RouteLink("Panel", "AdminHome", null, new { @class = "btn btn-outline-secondary" })</header>
+    <div class="table-responsive card shadow-sm"><table class="table align-middle mb-0"><thead><tr><th>Indicador</th><th class="text-end">Registros</th></tr></thead><tbody>
+        <tr><th scope="row">Vuelos programados</th><td class="text-end">@Model.TotalVuelos</td></tr>
+        <tr><th scope="row">Aeronaves registradas</th><td class="text-end">@Model.TotalAeronaves</td></tr>
+        <tr><th scope="row">Reservas</th><td class="text-end">@Model.TotalReservas</td></tr>
+        <tr><th scope="row">Pasajeros</th><td class="text-end">@Model.TotalPasajeros</td></tr>
+        <tr><th scope="row">Compras</th><td class="text-end">@Model.TotalCompras</td></tr>
+        <tr><th scope="row">Comprobantes</th><td class="text-end">@Model.TotalComprobantes</td></tr>
+    </tbody></table></div>
+    <p class="small text-secondary mt-3">Para incorporar filtros por periodo y exportacion, conectar un servicio de reportes con criterios autorizados.</p>
+</main>
