@@ -1,0 +1,198 @@
+@model proU1G7_jameza1_jsremache1.Models.ReservaConfirmacionViewModel
+
+@{
+    ViewBag.Title = "Confirmar reserva";
+}
+
+<main class="container py-4" aria-labelledby="page-title">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+            <header class="mb-4">
+                <p class="text-uppercase text-primary fw-semibold small mb-1">Compra de pasajes</p>
+                <h1 id="page-title" class="h2 fw-bold">Confirma tu reserva</h1>
+                <p class="text-secondary mb-0">Revisa los tramos, pasajeros y asientos antes de continuar.</p>
+            </header>
+
+            @* El controlador calcula importes y persiste la reserva solo despues de validar estas condiciones. *@
+            @if (TempData["Aviso"] != null)
+            {
+                <div class="alert alert-info" role="status">@TempData["Aviso"]</div>
+            }
+            @if (Model == null || Model.Tramos == null || Model.Tramos.Count == 0 || Model.Pasajeros == null || Model.Pasajeros.Count == 0)
+            {
+                <div class="alert alert-warning" role="alert">
+                    No hay datos de pasajeros o vuelos para confirmar. Regresa a la busqueda y completa los pasos anteriores.
+                </div>
+                @Html.RouteLink("Buscar vuelos", "FlightSearch", null, new { @class = "btn btn-primary" })
+            }
+            else
+            {
+                using (Html.BeginRouteForm("ReservaConfirmar", FormMethod.Post, new { id = "confirmarReservaForm" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "Revisa los datos indicados.", new { @class = "alert alert-danger", role = "alert" })
+
+                    <nav class="mb-4" aria-label="Pasos de compra">
+                        <ol class="list-group list-group-horizontal-md text-center">
+                            <li class="list-group-item flex-fill">1. Asientos</li>
+                            <li class="list-group-item flex-fill">2. Pasajeros</li>
+                            <li class="list-group-item flex-fill active" aria-current="step">3. Reserva</li>
+                            <li class="list-group-item flex-fill">4. Pago</li>
+                        </ol>
+                    </nav>
+
+                    <section class="card shadow-sm mb-4" aria-labelledby="itinerario-title">
+                        <div class="card-header bg-white">
+                            <h2 id="itinerario-title" class="h5 mb-0">Itinerario</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle mb-0">
+                                <caption class="visually-hidden">Tramos incluidos en la reserva</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Tramo</th>
+                                        <th scope="col">Vuelo</th>
+                                        <th scope="col">Ruta</th>
+                                        <th scope="col">Fecha</th>
+                                        <th scope="col">Horario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var tramo in Model.Tramos)
+                                    {
+                                        <tr>
+                                            <th scope="row">@tramo.Orden</th>
+                                            <td>@tramo.CodigoVuelo</td>
+                                            <td>@tramo.Ruta</td>
+                                            <td>@tramo.Fecha.ToString("dd/MM/yyyy")</td>
+                                            <td>@tramo.Horario</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="card shadow-sm mb-4" aria-labelledby="pasajeros-title">
+                        <div class="card-header bg-white">
+                            <h2 id="pasajeros-title" class="h5 mb-0">Pasajeros y asientos</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <caption class="visually-hidden">Pasajeros, documentos, asientos por tramo e importe estimado</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Pasajero</th>
+                                        <th scope="col">Documento</th>
+                                        <th scope="col">Asientos por tramo</th>
+                                        <th scope="col" class="text-end">Importe estimado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var pasajero in Model.Pasajeros)
+                                    {
+                                        <tr>
+                                            <th scope="row">@pasajero.NombreCompleto</th>
+                                            <td>@pasajero.TipoDocumento @pasajero.DocumentoEnmascarado</td>
+                                            <td>
+                                                @if (pasajero.AsientosPorTramo != null && pasajero.AsientosPorTramo.Count > 0)
+                                                {
+                                                    for (var i = 0; i < pasajero.AsientosPorTramo.Count; i++)
+                                                    {
+                                                        <span class="badge text-bg-light border me-1 mb-1">Tramo @(i + 1): @pasajero.AsientosPorTramo[i]</span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-secondary">Sin asientos asignados</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">@pasajero.ImporteEstimado.ToString("N2") @Model.MonedaCodigo</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light">
+                                        <th scope="row" colspan="3" class="text-end">Total estimado</th>
+                                        <td class="text-end fw-bold">@Model.TotalEstimado.ToString("N2") @Model.MonedaCodigo</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="card border-primary-subtle mb-4" aria-labelledby="condiciones-title">
+                        <div class="card-body">
+                            <h2 id="condiciones-title" class="h5">Condiciones de la reserva</h2>
+                            <div class="border rounded bg-light p-3 mb-3" tabindex="0" aria-label="Condiciones de reserva">
+                                @if (string.IsNullOrWhiteSpace(Model.CondicionesReserva))
+                                {
+                                    <p class="mb-0">La reserva queda pendiente de pago durante 15 minutos. Si vence el plazo, los asientos se liberan y debes iniciar una nueva reserva.</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0">@Model.CondicionesReserva</p>
+                                }
+                            </div>
+                            <div class="form-check">
+                                @Html.CheckBoxFor(m => m.AceptaCondiciones, new { @class = "form-check-input", required = "required", aria_describedby = "condiciones-error" })
+                                @Html.LabelFor(m => m.AceptaCondiciones, new { @class = "form-check-label" })
+                                <span id="condiciones-error" class="d-block text-danger" role="alert">
+                                    @Html.ValidationMessageFor(m => m.AceptaCondiciones, "", new { @class = "text-danger" })
+                                </span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
+                        @Html.RouteLink("Volver a modificar", "ReservaPasajeros", null, new { @class = "btn btn-outline-secondary" })
+                        <div class="d-flex flex-column flex-sm-row gap-2">
+                            <button type="submit" name="continuar" value="reservar" class="btn btn-outline-primary">
+                                Confirmar reserva
+                            </button>
+                            <button type="submit" name="continuar" value="pagar" class="btn btn-primary">
+                                Confirmar y pagar
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</main>
+
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        // Evita doble envio mientras el servidor valida y muestra el estado del borrador.
+        var formularioReserva = document.getElementById("confirmarReservaForm");
+        if (formularioReserva instanceof HTMLFormElement) {
+            formularioReserva.addEventListener("submit", function (event) {
+                if (!formularioReserva.checkValidity()) {
+                    event.preventDefault();
+                    formularioReserva.classList.add("was-validated");
+                    return;
+                }
+
+                if (formularioReserva.dataset.enviando === "true") {
+                    event.preventDefault();
+                    return;
+                }
+
+                var boton = event.submitter;
+                if (boton instanceof HTMLButtonElement) {
+                    if (boton.name === "continuar") {
+                        var opcion = document.createElement("input");
+                        opcion.type = "hidden";
+                        opcion.name = boton.name;
+                        opcion.value = boton.value;
+                        formularioReserva.appendChild(opcion);
+                    }
+                    formularioReserva.dataset.enviando = "true";
+                    boton.disabled = true;
+                    boton.textContent = "Validando reserva...";
+                }
+            });
+        }
+    </script>
+}

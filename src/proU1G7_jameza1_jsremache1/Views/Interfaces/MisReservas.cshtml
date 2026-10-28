@@ -1,0 +1,33 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Mis reservas";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+        <div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 13 - Area personal</p><h1 id="page-title" class="h2 fw-bold">Mis reservas</h1><p class="text-secondary mb-0">Solo se muestran operaciones asociadas a tu cuenta.</p></div>
+        @Html.RouteLink("Buscar vuelos", "FlightSearch", null, new { @class = "btn btn-primary align-self-md-start" })
+    </header>
+    @if (Model.Reservas.Count == 0)
+    {
+        <div class="card shadow-sm"><div class="card-body text-center py-5"><h2 class="h5">Aun no tienes reservas</h2><p class="text-secondary">Cuando se registren operaciones apareceran aqui.</p></div></div>
+    }
+    else
+    {
+        <div class="table-responsive card shadow-sm"><table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Codigo</th><th>Ruta</th><th>Fecha</th><th>Estado reserva</th><th>Estado compra</th><th>Total</th><th><span class="visually-hidden">Acciones</span></th></tr></thead>
+            <tbody>
+                @foreach (var reserva in Model.Reservas)
+                {
+                    <tr>
+                        <th scope="row">@reserva.CodigoReserva</th><td>@reserva.Ruta</td><td>@(reserva.FechaViaje.HasValue ? reserva.FechaViaje.Value.ToString("dd/MM/yyyy") : "-")</td><td>@reserva.EstadoReserva</td><td>@reserva.EstadoCompra</td><td>@reserva.Importe.ToString("N2") @reserva.Moneda</td>
+                        <td class="d-flex gap-1">
+                            @Html.RouteLink("Ver", "ManageReservation", new { id = reserva.ReservaId }, new { @class = "btn btn-sm btn-outline-primary" })
+                            @if (reserva.PermitePago) { @Html.RouteLink("Pago demo", "PurchasePay", new { id = reserva.ReservaId }, new { @class = "btn btn-sm btn-outline-warning" }) }
+                            else { @Html.RouteLink("Confirmacion", "PurchaseConfirm", new { id = reserva.ReservaId }, new { @class = "btn btn-sm btn-outline-secondary" }) }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+    }
+</main>
