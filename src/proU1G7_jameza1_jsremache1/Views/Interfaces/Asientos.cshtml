@@ -1,0 +1,54 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    var seleccion = ViewBag.PuedeSeleccionar == true;
+    ViewBag.Title = seleccion ? "Seleccionar asiento" : "Disponibilidad de asientos";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="mb-4">
+        <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @(seleccion ? "8" : "7") - @(seleccion ? "Seleccion temporal" : "Consulta publica")</p>
+        <h1 id="page-title" class="h2 fw-bold">@(seleccion ? "Selecciona tus asientos" : "Disponibilidad de asientos")</h1>
+        <p class="text-secondary">Vuelo VIP@((Model.VueloId ?? 0).ToString("D5")) - @(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("ddd dd/MM/yyyy") : "")</p>
+    </header>
+    @if (!string.IsNullOrWhiteSpace(Model.Mensaje)) { <div class="alert alert-info" role="status">@Model.Mensaje</div> }
+    @if (Model.Asientos.Count == 0)
+    {
+        <div class="alert alert-warning" role="alert">No existe una configuracion de asientos disponible para este vuelo.</div>
+    }
+    else
+    {
+        if (seleccion)
+        {
+            using (Html.BeginForm("SeleccionarAsiento", "Interfaces", new { id = Model.VueloId }, FormMethod.Post, new { id = "formAsientos" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.ValidationSummary(true, "Revisa la seleccion.", new { @class = "alert alert-danger", role = "alert" })
+                <div class="row g-4">
+                    <div class="col-12 col-lg-7">
+                        @Html.Partial("_MapaAsientos", Model)
+                    </div>
+                    <aside class="col-12 col-lg-5">
+                        <div class="card shadow-sm"><div class="card-body">
+                            <h2 class="h5">Resumen de seleccion</h2>
+                            <p>Selecciona asientos disponibles para @Model.CantidadPasajeros pasajero(s).</p>
+                            <p class="small text-secondary">La seleccion es temporal y no bloquea el inventario.</p>
+                            <button type="submit" class="btn btn-primary">Continuar a pasajeros</button>
+                            @Html.RouteLink("Regresar a resultados", "FlightResults", null, new { @class = "btn btn-outline-secondary mt-2" })
+                        </div></div>
+                    </aside>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="row g-4">
+                <div class="col-12 col-lg-8">@Html.Partial("_MapaAsientos", Model)</div>
+                <aside class="col-12 col-lg-4"><div class="card shadow-sm"><div class="card-body">
+                    <h2 class="h5">Disponibilidad</h2><p>Capacidad maxima: siete asientos.</p>
+                    @Html.RouteLink("Regresar a resultados", "FlightResults", null, new { @class = "btn btn-outline-secondary" })
+                    @if (Request.IsAuthenticated) { @Html.RouteLink("Seleccionar vuelo", "SeatSelection", new { id = Model.VueloId }, new { @class = "btn btn-primary mt-2" }) }
+                    else { @Html.ActionLink("Iniciar sesion para reservar", "Login", "Account", new { ReturnUrl = Url.RouteUrl("SeatSelection", new { id = Model.VueloId }) }, new { @class = "btn btn-primary mt-2" }) }
+                </div></div></aside>
+            </div>
+        }
+    }
+</main>
