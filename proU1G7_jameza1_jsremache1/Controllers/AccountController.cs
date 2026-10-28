@@ -73,12 +73,15 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return View(model);
             }
 
-            // No cuenta los errores de inicio de sesión para el bloqueo de la cuenta
-            // Para permitir que los errores de contraseña desencadenen el bloqueo de la cuenta, cambie a shouldLockout: true
-            var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
+            // Se acepta nombre de usuario o correo; Identity siempre autentica con el nombre de usuario real.
+            var account = await UserManager.FindByEmailAsync(model.Email)
+                ?? await UserManager.FindByNameAsync(model.Email);
+            var userName = account == null ? model.Email : account.UserName;
+            var result = await SignInManager.PasswordSignInAsync(userName, model.Password, model.RememberMe, shouldLockout: true);
             switch (result)
             {
                 case SignInStatus.Success:
+                    StoreUserSession(account);
                     return RedirectToLocal(returnUrl);
                 case SignInStatus.LockedOut:
                     return View("Lockout");
@@ -116,14 +119,19 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return View(model);
             }
 
-            // El código siguiente protege de los ataques por fuerza bruta a los códigos de dos factores. 
-            // Si un usuario introduce códigos incorrectos durante un intervalo especificado de tiempo, la cuenta del usuario 
-            // se bloqueará durante un período de tiempo especificado. 
-            // Puede configurar el bloqueo de la cuenta en IdentityConfig
-            var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent:  model.RememberMe, rememberBrowser: model.RememberBrowser);
+            // El código siguiente protege de los ataques por fuerza bruta a los códigos de dos factores.
+            // Se conserva el identificador antes de consumir el código para poder inicializar la sesión.
+            var verifiedUserId = await SignInManager.GetVerifiedUserIdAsync();
+            if (verifiedUserId == null)
+            {
+                return View("Error");
+            }
+
+            var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent: model.RememberMe, rememberBrowser: model.RememberBrowser);
             switch (result)
             {
                 case SignInStatus.Success:
+                    StoreUserSession(await UserManager.FindByIdAsync(verifiedUserId));
                     return RedirectToLocal(model.ReturnUrl);
                 case SignInStatus.LockedOut:
                     return View("Lockout");
@@ -139,37 +147,103 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
-            return View();
+            PrepararRolesDeRegistro();
+            return View(new RegisterViewModel());
         }
 
-        //
-        // POST: /Account/Register
+        // Visitantes siempre reciben el rol Cliente; solo SuperUsuario puede solicitar otro rol.
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Register(RegisterViewModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
-                var result = await UserManager.CreateAsync(user, model.Password);
+                PrepararRolesDeRegistro();
+                return View(model);
+            }
+
+            var esSuperUsuario = User.Identity.IsAuthenticated && User.IsInRole("SuperUsuario");
+            var rol = esSuperUsuario ? model.RequestedRole : "Cliente";
+            var rolesPermitidos = new[] { "Cliente", "Counter", "Administrador", "SuperUsuario" };
+            if (!rolesPermitidos.Contains(rol))
+            {
+                ModelState.AddModelError("RequestedRole", "El rol seleccionado no es válido.");
+                PrepararRolesDeRegistro();
+                return View(model);
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = model.UserName.Trim(),
+                Email = model.Email.Trim()
+            };
+            var result = await UserManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                result = await UserManager.AddToRoleAsync(user.Id, rol);
                 if (result.Succeeded)
                 {
-                    await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
-                    
-                    // Para obtener más información sobre cómo habilitar la confirmación de cuentas y el restablecimiento de contraseña, visite https://go.microsoft.com/fwlink/?LinkID=320771
-                    // Enviar un correo electrónico con este vínculo
-                    // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
-                    // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
-                    // await UserManager.SendEmailAsync(user.Id, "Confirmar la cuenta", "Para confirmar su cuenta, haga clic <a href=\"" + callbackUrl + "\">aquí</a>");
+                    if (!esSuperUsuario)
+                    {
+                        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                        StoreUserSession(user);
+                    }
 
                     return RedirectToAction("Index", "Home");
                 }
-                AddErrors(result);
+
+                // No dejar una cuenta activa sin el rol que se intentó asignar.
+                var deleteResult = await UserManager.DeleteAsync(user);
+                if (!deleteResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        "No se pudo asignar el rol y tampoco eliminar la cuenta incompleta: " +
+                        string.Join("; ", deleteResult.Errors));
+                }
             }
 
-            // Si llegamos a este punto, es que se ha producido un error y volvemos a mostrar el formulario
+            AddErrors(result);
+            PrepararRolesDeRegistro();
             return View(model);
+        }
+
+        private void PrepararRolesDeRegistro()
+        {
+            ViewBag.PuedeElegirRol = User.Identity.IsAuthenticated && User.IsInRole("SuperUsuario");
+            ViewBag.Roles = new SelectList(
+                new[] { "Cliente", "Counter", "Administrador", "SuperUsuario" },
+                "Cliente");
+        }
+
+        // La sesión contiene identificadores y datos de presentación, nunca contraseñas ni datos de pago.
+        private void StoreUserSession(ApplicationUser user)
+        {
+            if (user == null)
+            {
+                return;
+            }
+
+            var roles = UserManager.GetRoles(user.Id);
+            Session["UsuarioId"] = user.Id;
+            Session["NombreUsuario"] = user.UserName;
+            Session["CorreoUsuario"] = user.Email;
+            Session["RolUsuario"] = string.Join(",", roles);
+
+            // La base de dominio puede no tener aún un pasajero asociado a esta cuenta.
+            using (var db = new AerolineaVIPEntities())
+            {
+                var pasajero = db.Pasajeroes.FirstOrDefault(p => p.Correo == user.Email);
+                if (pasajero == null)
+                {
+                    Session.Remove("PasajeroId");
+                    Session.Remove("NombrePasajero");
+                    return;
+                }
+
+                Session["PasajeroId"] = pasajero.PasajeroId;
+                Session["NombrePasajero"] = pasajero.Nombres + " " + pasajero.Apellidos;
+            }
         }
 
         //
@@ -392,6 +466,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult LogOff()
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            Session.Clear();
+            Session.Abandon();
             return RedirectToAction("Index", "Home");
         }
 

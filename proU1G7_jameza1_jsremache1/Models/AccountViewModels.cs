@@ -49,8 +49,8 @@ namespace proU1G7_jameza1_jsremache1.Models
     public class LoginViewModel
     {
         [Required]
-        [Display(Name = "Correo electrónico")]
-        [EmailAddress]
+        [StringLength(256)]
+        [Display(Name = "Nombre de usuario o correo electrónico")]
         public string Email { get; set; }
 
         [Required]
@@ -65,12 +65,21 @@ namespace proU1G7_jameza1_jsremache1.Models
     public class RegisterViewModel
     {
         [Required]
+        [StringLength(50, MinimumLength = 4, ErrorMessage = "El nombre de usuario debe tener entre 4 y 50 caracteres.")]
+        [RegularExpression(@"^[A-Za-z0-9._-]+$", ErrorMessage = "Use letras, números, punto, guion o guion bajo.")]
+        [Display(Name = "Nombre de usuario")]
+        public string UserName { get; set; }
+
+        [Required]
         [EmailAddress]
         [Display(Name = "Correo electrónico")]
         public string Email { get; set; }
 
+        [Display(Name = "Rol")]
+        public string RequestedRole { get; set; }
+
         [Required]
-        [StringLength(100, ErrorMessage = "El número de caracteres de {0} debe ser al menos {2}.", MinimumLength = 6)]
+        [StringLength(100, ErrorMessage = "El número de caracteres de {0} debe ser al menos {2}.", MinimumLength = 8)]
         [DataType(DataType.Password)]
         [Display(Name = "Contraseña")]
         public string Password { get; set; }
