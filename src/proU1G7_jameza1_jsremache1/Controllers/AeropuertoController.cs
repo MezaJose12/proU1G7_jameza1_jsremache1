@@ -10,6 +10,8 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
+    // CAMBIO: proteger el CRUD de catálogos; el acceso público es solo de consulta de vuelos.
+    [Authorize(Roles = "Administrador,SuperUsuario")]
     public class AeropuertoController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

@@ -474,6 +474,7 @@
     <Content Include="Views\Interfaces\CheckIn.cshtml" />
     <Content Include="Views\Interfaces\Comprobantes.cshtml" />
     <Content Include="Views\Interfaces\AdminIndex.cshtml" />
+    <Content Include="Views\Interfaces\AdminPasajeros.cshtml" />
     <Content Include="Views\Interfaces\AdminModulo.cshtml" />
     <Content Include="Views\Interfaces\Reportes.cshtml" />
   </ItemGroup>

@@ -10,6 +10,8 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
+    // CAMBIO: restringir la modificación de rutas y tarifas.
+    [Authorize(Roles = "Administrador,SuperUsuario")]
     public class RutasController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

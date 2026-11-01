@@ -10,6 +10,8 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
+    // CAMBIO: restringir la creación y edición del inventario de vuelos.
+    [Authorize(Roles = "Administrador,SuperUsuario")]
     public class VueloController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();
