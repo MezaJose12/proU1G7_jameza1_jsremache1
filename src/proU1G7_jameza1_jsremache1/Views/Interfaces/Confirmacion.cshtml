@@ -1,0 +1,41 @@
+@model proU1G7_jameza1_jsremache1.Models.ReservaInterfazViewModel
+@{
+    ViewBag.Title = "Confirmacion de reserva";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="mb-4">
+        <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 12 - Confirmacion</p>
+        <h1 id="page-title" class="h2 fw-bold">Estado de la reserva</h1>
+    </header>
+    @if (Model == null)
+    {
+        <div class="alert alert-warning" role="alert">No se encontro la reserva solicitada.</div>
+    }
+    else
+    {
+        if (TempData["Aviso"] != null)
+        {
+            <div class="alert alert-info" role="status">@TempData["Aviso"]</div>
+        }
+        <section class="card shadow-sm mb-4">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Codigo de reserva</dt><dd class="col-sm-8">@Model.CodigoReserva</dd>
+                    <dt class="col-sm-4">Estado</dt><dd class="col-sm-8"><span class="badge text-bg-info">@Model.EstadoReserva</span></dd>
+                    <dt class="col-sm-4">Compra</dt><dd class="col-sm-8">@Model.EstadoCompra</dd>
+                    <dt class="col-sm-4">Ruta</dt><dd class="col-sm-8">@Model.Ruta</dd>
+                    <dt class="col-sm-4">Fecha de viaje</dt><dd class="col-sm-8">@(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("dd/MM/yyyy") : "Pendiente")</dd>
+                    <dt class="col-sm-4">Pasajeros</dt><dd class="col-sm-8">@Model.CantidadPasajeros</dd>
+                    <dt class="col-sm-4">Total</dt><dd class="col-sm-8">@Model.Importe.ToString("N2") @Model.Moneda</dd>
+                </dl>
+            </div>
+        </section>
+        <div class="d-flex flex-wrap gap-2">
+            @Html.RouteLink("Mis reservas", "MyReservations", null, new { @class = "btn btn-primary" })
+            @if (Model.PermitePago)
+            {
+                @Html.RouteLink("Continuar al pago simulado", "PurchasePay", new { id = Model.ReservaId }, new { @class = "btn btn-outline-primary" })
+            }
+        </div>
+    }
+</main>

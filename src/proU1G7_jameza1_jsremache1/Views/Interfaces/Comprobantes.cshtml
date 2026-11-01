@@ -1,0 +1,25 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Mis comprobantes";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 16 - Documentos</p><h1 id="page-title" class="h2 fw-bold">Mis comprobantes</h1><p class="text-secondary">Documentos emitidos para compras asociadas a tu cuenta.</p></header>
+    @if (TempData["Aviso"] != null)
+    {
+        <div class="alert alert-success" role="status">@TempData["Aviso"]</div>
+    }
+    <div class="alert alert-warning" role="note">Los comprobantes SIMULADO son ficticios y no tienen validez tributaria.</div>
+    @if (Model.Tramos.Count == 0)
+    {
+        <div class="card shadow-sm"><div class="card-body text-center py-5"><h2 class="h5">No hay comprobantes emitidos</h2><p class="text-secondary mb-0">Los comprobantes apareceran cuando exista una compra registrada y emitida.</p></div></div>
+    }
+    else
+    {
+        <div class="table-responsive card shadow-sm"><table class="table table-hover align-middle mb-0"><thead><tr><th>Numero</th><th>Tipo</th><th>Fecha de emision</th><th>Estado</th></tr></thead><tbody>
+            @foreach (var comprobante in Model.Tramos)
+            {
+                <tr><th scope="row">@comprobante.CodigoVuelo</th><td>@comprobante.Ruta</td><td>@comprobante.Fecha.ToString("dd/MM/yyyy HH:mm")</td><td><span class="badge text-bg-light border">@comprobante.Horario</span></td></tr>
+            }
+        </tbody></table></div>
+    }
+</main>

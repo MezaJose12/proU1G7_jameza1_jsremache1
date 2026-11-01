@@ -1,0 +1,73 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Buscar vuelos";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="mb-4">
+        <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 5 Area publica</p>
+        <h1 id="page-title" class="h2 fw-bold">Buscar vuelos</h1>
+        <p class="text-secondary">Indica tu ruta, fecha y cantidad de pasajeros. La disponibilidad se confirma para cada vuelo.</p>
+    </header>
+    @if (TempData["Aviso"] != null) { <div class="alert alert-info" role="status">@TempData["Aviso"]</div> }
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            @using (Html.BeginForm("Resultados", "Interfaces", FormMethod.Get, new { id = "formBuscarVuelos" }))
+            {
+                <div class="row g-3">
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label for="origen" class="form-label">Origen <span class="text-danger">*</span></label>
+                        @Html.DropDownList("origen", Model.Aeropuertos, "Seleccionar origen", new { @class = "form-select", id = "origen", required = "required" })
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label for="destino" class="form-label">Destino <span class="text-danger">*</span></label>
+                        @Html.DropDownList("destino", Model.Destinos, "Seleccionar destino", new { @class = "form-select", id = "destino", required = "required" })
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label for="fecha" class="form-label">Fecha de salida <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="fecha" name="fecha" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label for="pasajeros" class="form-label">Pasajeros <span class="text-danger">*</span></label>
+                        <select id="pasajeros" name="pasajeros" class="form-select" required>
+                            @for (var cantidad = 1; cantidad <= 7; cantidad++)
+                            {
+                                <option value="@cantidad" selected="@(cantidad == Model.CantidadPasajeros)">@cantidad</option>
+                            }
+                        </select>
+                        <div class="form-text">Capacidad maxima: 7 asientos.</div>
+                    </div>
+                    <div class="col-12 d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">Buscar</button>
+                        <a href="@Url.RouteUrl("FlightSearch")" class="btn btn-outline-secondary">Limpiar filtros</a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <section class="card shadow-sm" aria-labelledby="days-title">
+        <div class="card-body">
+            <h2 id="days-title" class="h5">Dias de operacion</h2>
+            <p class="text-secondary">Los horarios disponibles dependen de las frecuencias activas configuradas en la base de datos.</p>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th scope="col">Ruta activa</th><th scope="col">Dias</th></tr></thead>
+                    <tbody>
+                        @foreach (var ruta in Model.Destinos)
+                        {
+                            <tr><td>@ruta.Text</td><td>Consulte horarios disponibles al buscar</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+<script>
+    // Al cambiar el origen se recarga la pantalla para ofrecer solo destinos con ruta activa.
+    var selectorOrigen = document.getElementById("origen");
+    if (selectorOrigen instanceof HTMLSelectElement) {
+        selectorOrigen.addEventListener("change", function () {
+            window.location.href = "@Url.RouteUrl("FlightSearch")?origen=" + encodeURIComponent(selectorOrigen.value);
+        });
+    }
+</script>

@@ -1,0 +1,62 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Datos de pasajeros";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="mb-4">
+        <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 9 - Datos de viaje</p>
+        <h1 id="page-title" class="h2 fw-bold">Datos de los pasajeros</h1>
+        <p class="text-secondary">Ingresa los datos tal como aparecen en el documento de identidad. Vuelo VIP@((Model.VueloId ?? 0).ToString("D5")) - @Model.Pasajeros.Count pasajero(s).</p>
+    </header>
+    @Html.ValidationSummary(true, "Revisa los datos indicados.", new { @class = "alert alert-danger", role = "alert" })
+    @using (Html.BeginForm("Pasajeros", "Interfaces", FormMethod.Post, new { id = "pasajerosForm" }))
+    {
+        @Html.AntiForgeryToken()
+        for (var i = 0; i < Model.Pasajeros.Count; i++)
+        {
+            var pasajero = Model.Pasajeros[i];
+            <section class="card shadow-sm mb-3" aria-labelledby="pasajero-@i">
+                <div class="card-header bg-white d-flex justify-content-between">
+                    <h2 id="pasajero-@i" class="h5 mb-0">Pasajero @(i + 1)</h2>
+                    <span class="badge text-bg-light border">Asiento @pasajero.Asiento</span>
+                </div>
+                <div class="card-body">
+                    <input type="hidden" name="pasajeros[@i].Numero" value="@(i + 1)" />
+                    <input type="hidden" name="pasajeros[@i].Asiento" value="@pasajero.Asiento" />
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="pasajeros_@(i)__Nombres">Nombres</label>
+                            <input class="form-control" id="pasajeros_@(i)__Nombres" name="pasajeros[@i].Nombres" value="@pasajero.Nombres" maxlength="100" required />
+                            @Html.ValidationMessage("pasajeros[" + i + "].Nombres", "", new { @class = "text-danger" })
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="pasajeros_@(i)__Apellidos">Apellidos</label>
+                            <input class="form-control" id="pasajeros_@(i)__Apellidos" name="pasajeros[@i].Apellidos" value="@pasajero.Apellidos" maxlength="100" required />
+                            @Html.ValidationMessage("pasajeros[" + i + "].Apellidos", "", new { @class = "text-danger" })
+                        </div>
+                        <div class="col-12 col-md-5">
+                            <label class="form-label" for="pasajeros_@(i)__TipoDocumento">Tipo de documento</label>
+                            <select class="form-select" id="pasajeros_@(i)__TipoDocumento" name="pasajeros[@i].TipoDocumento" required>
+                                <option value="">Seleccione</option>
+                                @foreach (var tipo in Model.TiposDocumento)
+                                {
+                                    <option value="@tipo.Value" @(pasajero.TipoDocumento == tipo.Value ? "selected" : "")>@tipo.Text</option>
+                                }
+                            </select>
+                            @Html.ValidationMessage("pasajeros[" + i + "].TipoDocumento", "", new { @class = "text-danger" })
+                        </div>
+                        <div class="col-12 col-md-7">
+                            <label class="form-label" for="pasajeros_@(i)__Documento">Numero de documento</label>
+                            <input class="form-control" id="pasajeros_@(i)__Documento" name="pasajeros[@i].Documento" value="@pasajero.Documento" minlength="5" maxlength="20" autocomplete="off" required />
+                            @Html.ValidationMessage("pasajeros[" + i + "].Documento", "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+        <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
+            @Html.RouteLink("Volver a asientos", "SeatSelection", new { id = Model.VueloId }, new { @class = "btn btn-outline-secondary" })
+            <button type="submit" class="btn btn-primary">Revisar reserva</button>
+        </div>
+    }
+</main>

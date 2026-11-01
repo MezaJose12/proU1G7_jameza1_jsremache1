@@ -1,0 +1,89 @@
+﻿@model proU1G7_jameza1_jsremache1.Models.IndexViewModel
+@{
+    ViewBag.Title = "Administrar";
+}
+
+<main aria-labelledby="title">
+    <h2 id="title">@ViewBag.Title.</h2>
+
+    <p class="text-success">@ViewBag.StatusMessage</p>
+    <div>
+        <h4>Cambiar la configuracion de la cuenta</h4>
+        <hr />
+        <dl class="dl-horizontal">
+            <dt>Contrasena:</dt>
+            <dd>
+                [
+                @if (Model.HasPassword)
+                {
+                    @Html.ActionLink("Cambiar la contrasena", "ChangePassword")
+                }
+                else
+                {
+                    @Html.ActionLink("Crear", "SetPassword")
+                }
+                ]
+            </dd>
+            <dt>Inicios de sesion externos:</dt>
+            <dd>
+                @Model.Logins.Count [
+                @Html.ActionLink("Manage", "ManageLogins") ]
+            </dd>
+            @*
+                Los numeros de telefono se pueden usar como una segunda fase de comprobacion en un sistema de autenticacion en dos fases.
+                
+                Consulte <a href="https://go.microsoft.com/fwlink/?LinkId=403804">este articulo</a>
+                    para obtener detalles sobre como configurar esta aplicacion ASP.NET para que sea compatible con la autenticacion en dos fases mediante SMS.
+                
+                Quite la marca de comentario del bloque siguiente despues de configurar la autenticacion en dos fases
+            *@
+            @*  
+                <dt>Numero de telefono:</dt>
+                <dd>
+                    @(Model.PhoneNumber ?? "None")
+                    @if (Model.PhoneNumber != null)
+                    {
+                        <br />
+                        <text>[&nbsp;&nbsp;@Html.ActionLink("Change", "AddPhoneNumber")&nbsp;&nbsp;]</text>
+                        using (Html.BeginForm("RemovePhoneNumber", "Manage", FormMethod.Post, new { role = "form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <text>[<input type="submit" value="Quitar" class="btn-link" />]</text>
+                        }
+                    }
+                    else
+                    {
+                        <text>[&nbsp;&nbsp;@Html.ActionLink("Add", "AddPhoneNumber")
+                    }
+                </dd>
+            *@
+            <dt>Autenticacion de dos factores:</dt>
+            <dd>
+                <p>
+                    No hay ningun proveedor de autenticacion en dos fases configurado. Consulte <a href="https://go.microsoft.com/fwlink/?LinkId=403804">este articulo</a>
+                    para obtener detalles sobre como configurar esta aplicacion ASP.NET para que sea compatible con la autenticacion en dos fases.
+                </p>
+                @*@if (Model.TwoFactor)
+                    {
+                        using (Html.BeginForm("DisableTwoFactorAuthentication", "Manage", FormMethod.Post, new { role = "form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <text>Habilitado
+                            <input type="submit" value="Deshabilitar" class="btn btn-link" />
+                            </text>
+                        }
+                    }
+                    else
+                    {
+                        using (Html.BeginForm("EnableTwoFactorAuthentication", "Manage", FormMethod.Post, new { role = "form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <text>Deshabilitada
+                            <input type="submit" value="Habilitar" class="btn btn-link" />
+                            </text>
+                        }
+                    }*@
+            </dd>
+        </dl>
+    </div>
+</main>

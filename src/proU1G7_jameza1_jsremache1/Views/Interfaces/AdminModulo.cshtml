@@ -1,0 +1,20 @@
+@model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+@{
+    ViewBag.Title = "Modulo administrativo";
+}
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @ViewBag.NumeroPantalla - Administracion</p><h1 id="page-title" class="h2 fw-bold">@ViewBag.TitleModulo</h1>
+    @if (Model.AccesosAdministrativos.Count == 0)
+    {
+        <div class="alert alert-info">No hay accesos configurados para este modulo.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var acceso in Model.AccesosAdministrativos)
+            {
+                <div class="col-12 col-md-6"><article class="card h-100 shadow-sm"><div class="card-body"><h2 class="h5">@acceso.Titulo</h2><p class="text-secondary">@acceso.Descripcion</p>@if (!string.IsNullOrWhiteSpace(acceso.Controlador) && !string.IsNullOrWhiteSpace(acceso.Accion)) { @Html.ActionLink("Abrir", acceso.Accion, acceso.Controlador, null, new { @class = "btn btn-sm btn-primary" }) } else { <span class="badge text-bg-secondary">Pendiente de implementar</span> }</div></article></div>
+            }
+        </div>
+    }
+</main>

@@ -1,0 +1,11 @@
+﻿@{
+    ViewBag.Title = "Confirmar correo electronico";
+}
+<main aria-labelledby="title">
+    <h2 id="title">@ViewBag.Title.</h2>
+    <div>
+        <p>
+            Gracias por confirmar su correo electronico. @Html.ActionLink("Haga clic aqui para iniciar sesion", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })
+        </p>
+    </div>
+</main>
