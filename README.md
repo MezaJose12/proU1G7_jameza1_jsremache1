@@ -95,3 +95,5 @@ Cada intento persiste un pago simulado: los rechazos quedan como `RECHAZADO` y l
 | Administracion | `/Admin/Index` |
 
 Las rutas de detalle y pasos de compra reciben identificadores, por ejemplo `/Reservas/SeleccionAsiento/123` o `/Compras/Pagar/123`; usa preferentemente los botones y enlaces de la aplicacion para mantener la reserva seleccionada.
+
+# 7 . Funcionalidades puestas
