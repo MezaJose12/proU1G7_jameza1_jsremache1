@@ -906,7 +906,8 @@ INSERT INTO dbo.EstadoReserva (Codigo, Descripcion) VALUES
  ('PENDIENTE',  N'Reserva registrada, pendiente de compra'),
  ('CONFIRMADA', N'Reserva confirmada'),
  ('CANCELADA',  N'Reserva cancelada'),
- ('EXPIRADA',   N'Reserva expirada por tiempo de retención');
+ ('EXPIRADA',   N'Reserva expirada por tiempo de retención'),
+ ('SOLICITUD_CANCELACION', N'Solicitud de cancelación pendiente de aprobación; inventario retenido');
 
 INSERT INTO dbo.EstadoAsignacion (Codigo, Descripcion, OcupaInventario, EstadoVisual) VALUES
  ('PENDIENTE',  N'Asiento reservado, pendiente de pago (morado)', 1, 'RESERVADO'),

@@ -37,7 +37,8 @@ namespace proU1G7_jameza1_jsremache1
                 using (var identityDb = new ApplicationDbContext())
                 {
                     var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb));
-                    var demoUser = userManager.FindByName("SuperAdmin");
+                    var superUserName = ConfigurationManager.AppSettings["InitialSuperUserUserName"];
+                    var demoUser = string.IsNullOrWhiteSpace(superUserName) ? null : userManager.FindByName(superUserName);
                     demoUserId = demoUser == null ? null : demoUser.Id;
                 }
 
@@ -46,42 +47,46 @@ namespace proU1G7_jameza1_jsremache1
 #endif
         }
 
-        /* Creación de usuarios iniciales. */
-        /*Usuario superadmin*/
+        // CAMBIO: las cuentas de inicio se crean solo con credenciales locales configuradas.
         private void Csuper(ApplicationDbContext db)
         {
-            var usermanager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
-            var user = usermanager.FindByName("SuperAdmin");
-            /*si no existe crealo*/
-            if (user == null)
-            {
-                user = new ApplicationUser
-                {
-                    UserName = "SuperAdmin",
-                    Email = "jameza1@espe.edu.ec"
-                };
-                // Identity puede rechazar la cuenta si la contraseña no cumple su política.
-                VerificarResultado(usermanager.Create(user, "P@ssw0rd"), "crear el usuario SuperAdmin");
-            }
+            CrearUsuarioInicial(db, "InitialSuperUserUserName", "InitialSuperUserEmail", "InitialSuperUserPassword");
         }
 
         private void Cadministrador(ApplicationDbContext db)
         {
-            var usermanager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
-            var user = usermanager.FindByName("Administrador");
-            /*si no existe crealo*/
-            if (user == null)
-            {
-                user = new ApplicationUser
-                {
-                    UserName = "Administrador",
-                    Email = "jsremache1@espe.edu.ec"
-                };
-                VerificarResultado(usermanager.Create(user, "P@ssw0rd"), "crear el usuario Administrador");
-            }
+            CrearUsuarioInicial(db, "InitialAdministratorUserName", "InitialAdministratorEmail", "InitialAdministratorPassword");
         }
 
-        /* Creación de roles CRUD. */
+        private static void CrearUsuarioInicial(
+            ApplicationDbContext db,
+            string claveUsuario,
+            string claveCorreo,
+            string claveContrasena)
+        {
+            var nombre = ConfigurationManager.AppSettings[claveUsuario];
+            var correo = ConfigurationManager.AppSettings[claveCorreo];
+            var contrasena = ConfigurationManager.AppSettings[claveContrasena];
+            if (string.IsNullOrWhiteSpace(nombre) && string.IsNullOrWhiteSpace(correo) && string.IsNullOrWhiteSpace(contrasena))
+            {
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(contrasena))
+            {
+                throw new InvalidOperationException("Configure usuario, correo y contraseña locales para la cuenta inicial " + claveUsuario + ".");
+            }
+
+            var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
+            if (userManager.FindByName(nombre) != null)
+            {
+                return;
+            }
+
+            var user = new ApplicationUser { UserName = nombre.Trim(), Email = correo.Trim() };
+            VerificarResultado(userManager.Create(user, contrasena), "crear la cuenta inicial " + nombre);
+        }
+
+        /* Creación de roles, incluido Counter con permisos operativos limitados. */
         private void roles(ApplicationDbContext db)
         {
             var rolManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
@@ -98,20 +103,21 @@ namespace proU1G7_jameza1_jsremache1
             }
         }
 
-        /* Asigna por separado cada permiso y siempre al usuario correspondiente. */
         private void arol(ApplicationDbContext db)
         {
             var usermanager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
-            var superadmin = usermanager.FindByName("SuperAdmin");
-            var administrador = usermanager.FindByName("Administrador");
+            var nombreSuperUsuario = ConfigurationManager.AppSettings["InitialSuperUserUserName"];
+            var nombreAdministrador = ConfigurationManager.AppSettings["InitialAdministratorUserName"];
+            var superUsuario = string.IsNullOrWhiteSpace(nombreSuperUsuario) ? null : usermanager.FindByName(nombreSuperUsuario);
+            var administrador = string.IsNullOrWhiteSpace(nombreAdministrador) ? null : usermanager.FindByName(nombreAdministrador);
 
-            if (superadmin != null)
+            if (superUsuario != null)
             {
-                AsignarRolSiFalta(usermanager, superadmin, "SuperUsuario");
-                AsignarRolSiFalta(usermanager, superadmin, "view");
-                AsignarRolSiFalta(usermanager, superadmin, "create");
-                AsignarRolSiFalta(usermanager, superadmin, "edit");
-                AsignarRolSiFalta(usermanager, superadmin, "delete");
+                AsignarRolSiFalta(usermanager, superUsuario, "SuperUsuario");
+                AsignarRolSiFalta(usermanager, superUsuario, "view");
+                AsignarRolSiFalta(usermanager, superUsuario, "create");
+                AsignarRolSiFalta(usermanager, superUsuario, "edit");
+                AsignarRolSiFalta(usermanager, superUsuario, "delete");
             }
 
             if (administrador != null)

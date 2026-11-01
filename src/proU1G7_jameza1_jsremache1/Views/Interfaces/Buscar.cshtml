@@ -47,18 +47,25 @@
     <section class="card shadow-sm" aria-labelledby="days-title">
         <div class="card-body">
             <h2 id="days-title" class="h5">Dias de operacion</h2>
-            <p class="text-secondary">Los horarios disponibles dependen de las frecuencias activas configuradas en la base de datos.</p>
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead><tr><th scope="col">Ruta activa</th><th scope="col">Dias</th></tr></thead>
-                    <tbody>
-                        @foreach (var ruta in Model.Destinos)
-                        {
-                            <tr><td>@ruta.Text</td><td>Consulte horarios disponibles al buscar</td></tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+            <p class="text-secondary">Días y horarios de las frecuencias activas configuradas en la base de datos.</p>
+            @if (Model.RutasOperacion.Count == 0)
+            {
+                <p class="mb-0">No hay rutas con frecuencias activas para el origen seleccionado.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th scope="col">Ruta activa</th><th scope="col">Días y horarios (salida–llegada)</th></tr></thead>
+                        <tbody>
+                            @foreach (var ruta in Model.RutasOperacion)
+                            {
+                                <tr><td>@ruta.Ruta</td><td>@ruta.DiasHorarios</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </section>
 </main>
