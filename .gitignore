@@ -366,7 +366,6 @@ FodyWeavers.xsd
 node_modules/
 .vs/
 session-state/
-.gitignore
 obj/
 obj/Debug/
 App_Data/
