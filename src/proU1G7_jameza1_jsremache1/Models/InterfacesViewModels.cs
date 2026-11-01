@@ -20,6 +20,10 @@ namespace proU1G7_jameza1_jsremache1.Models
             Reservas = new List<ReservaInterfazViewModel>();
             Tramos = new List<TramoInterfazViewModel>();
             AccesosAdministrativos = new List<AccesoAdministrativoViewModel>();
+            UsuariosAdministrativos = new List<UsuarioAdministrativoViewModel>();
+            RutasOperacion = new List<RutaOperacionViewModel>();
+            ReservasPorEstado = new List<EstadoReporteViewModel>();
+            ComprasPorEstado = new List<EstadoReporteViewModel>();
         }
 
         public string Origen { get; set; }
@@ -34,6 +38,8 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string EstadoCompra { get; set; }
         public string EstadoPago { get; set; }
         public string Mensaje { get; set; }
+        public string CodigoReservaBusqueda { get; set; }
+        public string DocumentoBusqueda { get; set; }
         public decimal Total { get; set; }
         public string Moneda { get; set; }
         public IList<SelectListItem> Aeropuertos { get; set; }
@@ -45,12 +51,25 @@ namespace proU1G7_jameza1_jsremache1.Models
         public IList<ReservaInterfazViewModel> Reservas { get; set; }
         public IList<TramoInterfazViewModel> Tramos { get; set; }
         public IList<AccesoAdministrativoViewModel> AccesosAdministrativos { get; set; }
-        public int TotalVuelos { get; set; }
+        public IList<UsuarioAdministrativoViewModel> UsuariosAdministrativos { get; set; }
+        public IList<RutaOperacionViewModel> RutasOperacion { get; set; }
+        public int TotalVuelos { get; set;}
         public int TotalAeronaves { get; set; }
         public int TotalReservas { get; set; }
         public int TotalPasajeros { get; set; }
         public int TotalCompras { get; set; }
         public int TotalComprobantes { get; set; }
+        public DateTime? ReporteDesde { get; set; }
+        public DateTime? ReporteHasta { get; set; }
+        public string ReporteAviso { get; set; }
+        public IList<EstadoReporteViewModel> ReservasPorEstado { get; set; }
+        public IList<EstadoReporteViewModel> ComprasPorEstado { get; set; }
+    }
+
+    public class RutaOperacionViewModel
+    {
+        public string Ruta { get; set; }
+        public string DiasHorarios { get; set; }
     }
 
     public class VueloTarjetaViewModel
@@ -118,6 +137,8 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string EstadoReserva { get; set; }
         public string EstadoCompra { get; set; }
         public bool PermitePago { get; set; }
+        // CAMBIO: muestra las acciones permitidas según el estado persistido de la reserva.
+        public bool PermiteCancelar { get; set; }
         public decimal Importe { get; set;}
         public string Moneda { get; set; }
         public IList<TramoInterfazViewModel> Tramos { get; set; }
@@ -141,5 +162,77 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string Controlador { get; set; }
         public string Accion { get; set; }
         public string Icono { get; set; }
+    }
+
+    public class UsuarioAdministrativoViewModel
+    {
+        public string Id { get; set; }
+        public string Nombre { get; set; }
+        public string Correo { get; set; }
+        public string Roles { get; set; }
+        public bool EsEditable { get; set; }
+    }
+
+    public class AdministracionPasajerosViewModel
+    {
+        public AdministracionPasajerosViewModel()
+        {
+            TiposDocumento = new List<SelectListItem>();
+            Pasajeros = new List<PasajeroAdministracionItemViewModel>();
+        }
+
+        public string Busqueda { get; set; }
+        public string Aviso { get; set; }
+        public PasajeroAdministracionFormularioViewModel Formulario { get; set; }
+        public IList<SelectListItem> TiposDocumento { get; set; }
+        public IList<PasajeroAdministracionItemViewModel> Pasajeros { get; set; }
+    }
+
+    public class PasajeroAdministracionItemViewModel
+    {
+        public int PasajeroId { get; set; }
+        public string TipoDocumento { get; set; }
+        public string NumeroDocumento { get; set; }
+        public string NombreCompleto { get; set; }
+        public string Correo { get; set; }
+        public int ReservasAsociadas { get; set; }
+    }
+
+    public class EstadoReporteViewModel
+    {
+        public string Estado { get; set; }
+        public int Total { get; set; }
+    }
+
+    public class PasajeroAdministracionFormularioViewModel
+    {
+        public int? PasajeroId { get; set; }
+
+        [Required(ErrorMessage = "Seleccione un tipo de documento.")]
+        [StringLength(20)]
+        public string TipoDocumentoCodigo { get; set; }
+
+        [Required(ErrorMessage = "Ingrese el número de documento.")]
+        [StringLength(20, MinimumLength = 5)]
+        public string NumeroDocumento { get; set; }
+
+        [Required(ErrorMessage = "Ingrese los nombres.")]
+        [StringLength(100, MinimumLength = 1)]
+        public string Nombres { get; set; }
+
+        [Required(ErrorMessage = "Ingrese los apellidos.")]
+        [StringLength(100, MinimumLength = 1)]
+        public string Apellidos { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime? FechaNacimiento { get; set; }
+
+        [EmailAddress(ErrorMessage = "Ingrese un correo válido.")]
+        [StringLength(256)]
+        public string Correo { get; set; }
+
+        [RegularExpression(@"^[0-9+ ]*$", ErrorMessage = "El teléfono solo admite dígitos, espacios y el signo +.")]
+        [StringLength(20)]
+        public string Telefono { get; set; }
     }
 }

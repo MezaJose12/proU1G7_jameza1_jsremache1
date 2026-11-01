@@ -10,6 +10,8 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
+    // CAMBIO: restringir la administración de modelos de aeronave.
+    [Authorize(Roles = "Administrador,SuperUsuario")]
     public class ModeloAeronaveController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

@@ -10,7 +10,8 @@
     }
     else
     {
-        <div class="alert alert-info" role="status">Esta pantalla permite consultar la reserva. Cambios, cancelaciones y reembolsos requieren reglas de negocio y persistencia que aun no se conectan en esta entrega.</div>
+        @if (TempData["Aviso"] != null) { <div class="alert alert-info" role="status">@TempData["Aviso"]</div> }
+        <div class="alert alert-info" role="status">Las reservas pendientes se cancelan y liberan sus asientos. En compras pagadas se registra una solicitud: DP-08 sigue pendiente de aprobación y no se ejecuta reembolso ni liberación.</div>
         <section class="card shadow-sm mb-4"><div class="card-header bg-white"><h2 class="h5 mb-0">@Model.CodigoReserva</h2></div><div class="card-body">
             <dl class="row"><dt class="col-sm-4">Ruta</dt><dd class="col-sm-8">@Model.Ruta</dd><dt class="col-sm-4">Fecha de viaje</dt><dd class="col-sm-8">@(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("dd/MM/yyyy") : "-")</dd><dt class="col-sm-4">Pasajeros</dt><dd class="col-sm-8">@Model.CantidadPasajeros</dd><dt class="col-sm-4">Estado</dt><dd class="col-sm-8">@Model.EstadoReserva</dd><dt class="col-sm-4">Compra</dt><dd class="col-sm-8">@Model.EstadoCompra</dd></dl>
             @if (Model.Tramos != null && Model.Tramos.Count > 0)
@@ -18,6 +19,17 @@
                 <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Vuelo</th><th>Ruta</th><th>Fecha</th><th>Pasajero</th><th>Asiento</th></tr></thead><tbody>@foreach (var tramo in Model.Tramos) { <tr><td>@tramo.CodigoVuelo</td><td>@tramo.Ruta</td><td>@tramo.Fecha.ToString("dd/MM/yyyy")</td><td>@tramo.NombrePasajero</td><td>@tramo.Asiento</td></tr> }</tbody></table></div>
             }
         </div></section>
-        <div class="d-flex flex-wrap gap-2">@Html.RouteLink("Volver a mis reservas", "MyReservations", null, new { @class = "btn btn-outline-secondary" })@Html.RouteLink("Ver comprobantes", "Receipts", null, new { @class = "btn btn-outline-primary" })</div>
+        <div class="d-flex flex-wrap gap-2">
+            @Html.RouteLink("Volver a mis reservas", "MyReservations", null, new { @class = "btn btn-outline-secondary" })
+            @Html.RouteLink("Ver comprobantes", "Receipts", null, new { @class = "btn btn-outline-primary" })
+            @if (Model.PermiteCancelar)
+            {
+                using (Html.BeginForm("SolicitarCancelacion", "Interfaces", new { id = Model.ReservaId }, FormMethod.Post, new { onsubmit = "return confirm('¿Deseas continuar con la cancelación o solicitud?');" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger">Cancelar / solicitar cancelación</button>
+                }
+            }
+        </div>
     }
 </main>

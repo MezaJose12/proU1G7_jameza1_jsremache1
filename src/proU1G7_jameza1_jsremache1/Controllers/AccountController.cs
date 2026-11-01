@@ -224,6 +224,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return;
             }
 
+            // CAMBIO: evita reutilizar borradores de compra de otra cuenta en la misma sesión.
+            Session.Clear();
             var roles = UserManager.GetRoles(user.Id);
             Session["UsuarioId"] = user.Id;
             Session["NombreUsuario"] = user.UserName;

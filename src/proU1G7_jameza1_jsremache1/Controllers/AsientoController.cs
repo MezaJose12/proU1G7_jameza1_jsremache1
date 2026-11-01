@@ -10,6 +10,8 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
+    // CAMBIO: proteger el CRUD de la configuración física de asientos.
+    [Authorize(Roles = "Administrador,SuperUsuario")]
     public class AsientoController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

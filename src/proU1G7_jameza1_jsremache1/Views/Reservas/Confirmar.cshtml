@@ -127,7 +127,7 @@
                             <div class="border rounded bg-light p-3 mb-3" tabindex="0" aria-label="Condiciones de reserva">
                                 @if (string.IsNullOrWhiteSpace(Model.CondicionesReserva))
                                 {
-                                    <p class="mb-0">La reserva queda pendiente de pago durante 15 minutos. Si vence el plazo, los asientos se liberan y debes iniciar una nueva reserva.</p>
+                                    <p class="mb-0">La reserva queda pendiente de pago hasta por 30 minutos o hasta la salida del vuelo, lo que ocurra primero. Si vence el plazo, los asientos se liberan y debes iniciar una nueva reserva.</p>
                                 }
                                 else
                                 {
