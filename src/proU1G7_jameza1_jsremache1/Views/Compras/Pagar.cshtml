@@ -119,7 +119,7 @@
                                         @Html.TextBoxFor(m => m.NumeroTarjeta, new
                                         {
                                             @class = "form-control",
-                                            id = "numeroTarjeta",
+                                            id = "NumeroTarjeta",
                                             inputmode = "numeric",
                                             autocomplete = "cc-number",
                                             placeholder = "0000 0000 0000 0000",
@@ -145,7 +145,7 @@
                                         </div>
                                         <div class="col-6">
                                             @Html.LabelFor(m => m.CodigoSeguridad, new { @class = "form-label" }) <span class="text-danger" aria-hidden="true">*</span>
-                                            @Html.PasswordFor(m => m.CodigoSeguridad, new { @class = "form-control", id = "codigoSeguridad", autocomplete = "cc-csc", inputmode = "numeric", maxlength = "4", placeholder = "***" })
+                                            @Html.PasswordFor(m => m.CodigoSeguridad, new { @class = "form-control", id = "CodigoSeguridad", autocomplete = "cc-csc", inputmode = "numeric", maxlength = "4", placeholder = "***" })
                                             @Html.ValidationMessageFor(m => m.CodigoSeguridad, "", new { @class = "text-danger", role = "alert" })
                                         </div>
                                     </div>
@@ -168,7 +168,7 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <p>Deseas confirmar esta compra de demostracion? No se realizara ningun cobro ni se guardaran datos de tarjeta.
+                                    <p>Deseas confirmar esta compra de demostracion? No se realizara ningun cobro ni se guardaran datos de tarjeta.</p>
                                     <dl class="row mb-0">
                                         <dt class="col-5">Monto</dt>
                                         <dd class="col-7">@Model.Total.ToString("N2") @Model.MonedaCodigo</dd>
@@ -198,13 +198,14 @@
             var form = document.getElementById("pagoSimuladoForm");
             if (!form) return;
 
-            var numero = document.getElementById("numeroTarjeta");
-            var cvv = document.getElementById("codigoSeguridad");
+            var numero = document.getElementById("NumeroTarjeta");
+            var cvv = document.getElementById("CodigoSeguridad");
             var nombreTitular = form.querySelector("[name='NombreTitular']");
             var botonAbrir = document.getElementById("abrirConfirmacion");
             var botonConfirmar = document.getElementById("confirmarPago");
             var modalElemento = document.getElementById("confirmarPagoModal");
             var opcionesMarca = form.querySelectorAll(".marca-tarjeta");
+            document.body.appendChild(modalElemento);
 
             function marcaSeleccionada() {
                 return form.querySelector(".marca-tarjeta:checked");
@@ -282,7 +283,7 @@
                     return;
                 }
 
-                // El boton se deshabilita para evitar reenvios; el servidor no procesa ni persiste los datos de tarjeta.
+                // Evita reenvíos; el servidor solo guarda datos simulados, nunca el número o CVV.
                 var boton = document.getElementById("confirmarPago");
                 boton.disabled = true;
                 boton.textContent = "Validando la simulacion...";

@@ -4,12 +4,14 @@ using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
+using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Web.Mvc;
 using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
 using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
@@ -27,6 +29,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             CargarAeropuertos(model);
             var aeropuerto = string.IsNullOrWhiteSpace(origen) ? null : BuscarAeropuerto(origen);
             CargarDestinos(model, aeropuerto == null ? (int?)null : aeropuerto.AeropuertoId);
+            CargarRutasOperacion(model, aeropuerto == null ? (int?)null : aeropuerto.AeropuertoId);
             return View("Buscar", model);
         }
 
@@ -50,6 +53,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return View("Resultados", model);
             }
 
+            // CAMBIO: liberar holds vencidos antes de calcular el inventario visible.
+            ExpirarReservasVencidas();
             var aeropuertoOrigen = BuscarAeropuerto(origen);
             var aeropuertoDestino = BuscarAeropuerto(destino);
             if (aeropuertoOrigen == null || aeropuertoDestino == null)
@@ -73,10 +78,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 .OrderBy(v => v.Frecuencia.HoraSalida)
                 .ToList();
 
+            var ahora = DateTime.Now;
+            vuelos = vuelos.Where(v => v.FechaOperacion.Date.Add(v.Frecuencia.HoraSalida) > ahora).ToList();
             foreach (var vuelo in vuelos)
             {
                 var ruta = rutas.First(r => r.RutaId == vuelo.Frecuencia.RutaId);
-                var ahora = DateTime.Now;
                 var asignacionesVigentes = db.ReservaPasajeroVueloes
                     .Where(a => a.VueloId == vuelo.VueloId &&
                                 (a.EstadoAsignacionCodigo == "CONFIRMADA" ||
@@ -120,6 +126,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
 
+            ExpirarReservasVencidas();
             var vuelo = CargarVueloConAsientos(id.Value);
             if (vuelo == null)
             {
@@ -138,6 +145,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
 
+            ExpirarReservasVencidas();
             var vuelo = CargarVueloConAsientos(id.Value);
             if (vuelo == null)
             {
@@ -158,6 +166,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult SeleccionarAsiento(int id, string[] asientos)
         {
+            ExpirarReservasVencidas();
             var vuelo = CargarVueloConAsientos(id);
             if (vuelo == null)
             {
@@ -334,11 +343,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             LimpiarBorradorReserva();
             if (string.Equals(continuar, "pagar", StringComparison.OrdinalIgnoreCase))
             {
-                TempData["Aviso"] = "Reserva guardada. Completa el pago simulado dentro de 15 minutos.";
+                TempData["Aviso"] = "Reserva guardada. Completa el pago simulado dentro del plazo indicado en pantalla.";
                 return RedirectToRoute("PurchasePay", new { id = reservaId.Value });
             }
 
-            TempData["Aviso"] = "Reserva guardada. Los asientos se mantienen durante 15 minutos mientras la reserva este pendiente de pago.";
+            TempData["Aviso"] = "Reserva guardada. Los asientos se mantienen hasta el vencimiento configurado o la salida del vuelo.";
             return RedirectToRoute("PurchaseConfirm", new { id = reservaId.Value });
         }
 
@@ -367,7 +376,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     .Include("Frecuencia.Ruta")
                     .Include("Aeronave.ModeloAeronave.Asientoes")
                     .FirstOrDefault(v => v.VueloId == vueloId.Value);
-                if (vuelo == null || vuelo.Aeronave == null || vuelo.FechaOperacion.Date < ahora.Date ||
+                var salidaVuelo = vuelo == null ? DateTime.MinValue : vuelo.FechaOperacion.Date.Add(vuelo.Frecuencia.HoraSalida);
+                if (vuelo == null || vuelo.Aeronave == null || salidaVuelo <= ahora ||
                     vuelo.EstadoVueloCodigo == "CANCELADO" || !vuelo.Frecuencia.Ruta.Activa)
                 {
                     error = "El vuelo ya no esta disponible para reservar. Busca otro vuelo.";
@@ -428,7 +438,9 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 {
                     UsuarioId = User.Identity.GetUserId(),
                     FechaCreacion = ahora,
-                    FechaExpiracion = ahora.AddMinutes(15),
+                    FechaExpiracion = salidaVuelo < ahora.AddMinutes(LeerParametroPositivo("ReservaRetencionMinutos"))
+                        ? salidaVuelo
+                        : ahora.AddMinutes(LeerParametroPositivo("ReservaRetencionMinutos")),
                     EstadoReservaCodigo = "PENDIENTE"
                 };
                 db.Reservas.Add(reserva);
@@ -487,10 +499,48 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             }
         }
 
+        // CAMBIO: aplica DP-07 al consultar y antes de reservar; los estados ya existen en el script SQL.
+        private void ExpirarReservasVencidas()
+        {
+            var ahora = DateTime.Now;
+            using (var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable))
+            {
+                var vencidas = db.Reservas
+                    .Include("ReservaPasajeroVueloes")
+                    .Where(r => r.EstadoReservaCodigo == "PENDIENTE" &&
+                                (!r.FechaExpiracion.HasValue || r.FechaExpiracion <= ahora))
+                    .ToList();
+                if (vencidas.Count == 0)
+                {
+                    transaction.Commit();
+                    return;
+                }
+
+                if (!db.EstadoReservas.Any(e => e.Codigo == "EXPIRADA") ||
+                    !db.EstadoAsignacions.Any(e => e.Codigo == "LIBERADA"))
+                {
+                    throw new InvalidOperationException("Falta configurar EXPIRADA y LIBERADA en los catálogos de reservas.");
+                }
+
+                foreach (var reserva in vencidas)
+                {
+                    reserva.EstadoReservaCodigo = "EXPIRADA";
+                    foreach (var asignacion in reserva.ReservaPasajeroVueloes.Where(a => a.EstadoAsignacionCodigo == "PENDIENTE"))
+                    {
+                        asignacion.EstadoAsignacionCodigo = "LIBERADA";
+                    }
+                }
+
+                db.SaveChanges();
+                transaction.Commit();
+            }
+        }
+
         private void LiberarAsignacionesVencidas(int vueloId, IEnumerable<byte> numerosAsiento, DateTime ahora)
         {
             var numeros = numerosAsiento.Distinct().ToList();
             var vencidas = db.ReservaPasajeroVueloes
+                .Include("Reserva")
                 .Where(a => a.VueloId == vueloId && numeros.Contains(a.NumeroAsiento) &&
                             a.EstadoAsignacionCodigo == "PENDIENTE" &&
                             (!a.Reserva.FechaExpiracion.HasValue || a.Reserva.FechaExpiracion <= ahora))
@@ -500,23 +550,10 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return;
             }
 
-            var estadoVencida = db.EstadoAsignacions.Find("VENCIDA");
-            if (estadoVencida == null)
-            {
-                estadoVencida = new EstadoAsignacion
-                {
-                    Codigo = "VENCIDA",
-                    Descripcion = "Vencida",
-                    OcupaInventario = false,
-                    EstadoVisual = "DISPONIBLE"
-                };
-                db.EstadoAsignacions.Add(estadoVencida);
-                db.SaveChanges();
-            }
-
             foreach (var asignacion in vencidas)
             {
-                asignacion.EstadoAsignacionCodigo = estadoVencida.Codigo;
+                asignacion.EstadoAsignacionCodigo = "LIBERADA";
+                asignacion.Reserva.EstadoReservaCodigo = "EXPIRADA";
             }
 
             db.SaveChanges();
@@ -586,6 +623,17 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             Session.Remove("CantidadSolicitada");
         }
 
+        private static int LeerParametroPositivo(string clave)
+        {
+            int valor;
+            if (!int.TryParse(ConfigurationManager.AppSettings[clave], NumberStyles.None, CultureInfo.InvariantCulture, out valor) || valor <= 0)
+            {
+                throw new InvalidOperationException("El parámetro " + clave + " debe ser un entero positivo en Web.config.");
+            }
+
+            return valor;
+        }
+
         private static bool ReservaPendienteVencida(Reserva reserva, DateTime ahora)
         {
             return reserva.EstadoReservaCodigo == "PENDIENTE" &&
@@ -595,19 +643,21 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [Authorize]
         public ActionResult Pagar(int? id)
         {
+            ExpirarReservasVencidas();
             if (!id.HasValue || id.Value <= 0)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
 
             var usuarioId = User.Identity.GetUserId();
+            var esCounter = User.IsInRole("Counter");
             var reserva = db.Reservas
                 .Include("EstadoReserva")
                 .Include("Compras.EstadoCompra")
                 .Include("Compras.Pagoes.EstadoPago")
                 .Include("ReservaPasajeroVueloes.Pasajero")
                 .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia.Ruta")
-                .FirstOrDefault(r => r.ReservaId == id.Value && r.UsuarioId == usuarioId);
+                .FirstOrDefault(r => r.ReservaId == id.Value && (r.UsuarioId == usuarioId || esCounter));
             if (reserva == null)
             {
                 return HttpNotFound();
@@ -644,6 +694,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
 
+            // CAMBIO: registrar vencimientos antes de validar el cobro evita pagar inventario liberado.
+            ExpirarReservasVencidas();
             model = model ?? new PagoSimuladoViewModel();
             var reserva = ObtenerReservaPropia(id);
             if (reserva == null)
@@ -730,14 +782,16 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return View("~/Views/Compras/Pagar.cshtml", model);
             }
 
+            var pagoAprobado = !numero.EndsWith("0000", StringComparison.Ordinal);
             using (var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable))
             {
-                var compraExistente = db.Compras.FirstOrDefault(c => c.ReservaId == reserva.ReservaId);
-                if (compraExistente != null)
+                var compraExistente = db.Compras.FirstOrDefault(c => c.ReservaId == reserva.ReservaId &&
+                    (c.EstadoCompraCodigo == "PENDIENTE" || c.EstadoCompraCodigo == "PAGADA"));
+                if (compraExistente != null && compraExistente.EstadoCompraCodigo == "PAGADA")
                 {
                     EmitirComprobanteSimulado(compraExistente, DateTime.Now);
                     transaction.Commit();
-                    TempData["Aviso"] = "Esta compra ya estaba registrada. Se muestra su comprobante simulado.";
+                    TempData["Aviso"] = "Esta compra ya estaba pagada. Revisa el comprobante emitido.";
                     return RedirectToRoute("Receipts");
                 }
 
@@ -746,65 +800,75 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 if (reserva.EstadoReservaCodigo != "PENDIENTE" || ReservaPendienteVencida(reserva, ahora))
                 {
                     transaction.Commit();
-                    TempData["Aviso"] = "La reserva ya no esta pendiente o vencio. Revisa tus reservas.";
+                    TempData["Aviso"] = "La reserva ya no está pendiente o venció. Revisa tus reservas.";
                     return RedirectToRoute("MyReservations");
                 }
 
                 if (!db.EstadoReservas.Any(e => e.Codigo == "CONFIRMADA") ||
                     !db.EstadoAsignacions.Any(e => e.Codigo == "CONFIRMADA") ||
+                    !db.EstadoCompras.Any(e => e.Codigo == (pagoAprobado ? "PAGADA" : "PENDIENTE")) ||
+                    !db.EstadoPagoes.Any(e => e.Codigo == (pagoAprobado ? "APROBADO" : "RECHAZADO")) ||
                     !db.Monedas.Any(m => m.Codigo == "USD"))
                 {
-                    throw new InvalidOperationException("Falta configurar el estado CONFIRMADA para reservas/asignaciones o la moneda USD.");
+                    throw new InvalidOperationException("Faltan estados comerciales o la moneda USD en los catálogos de AerolineaVIP.");
                 }
 
-                if (!db.EstadoCompras.Any(e => e.Codigo == "CONFIRMADA"))
-                {
-                    db.EstadoCompras.Add(new EstadoCompra { Codigo = "CONFIRMADA", Descripcion = "Confirmada" });
-                }
-                if (!db.EstadoPagoes.Any(e => e.Codigo == "APROBADO"))
-                {
-                    db.EstadoPagoes.Add(new EstadoPago { Codigo = "APROBADO", Descripcion = "Aprobado (simulado)" });
-                }
-
-                var compra = new Compra
+                var compra = compraExistente ?? new Compra
                 {
                     ReservaId = reserva.ReservaId,
                     FechaCompra = ahora,
                     Importe = modeloServidor.Total,
                     MonedaCodigo = "USD",
-                    EstadoCompraCodigo = "CONFIRMADA",
+                    EstadoCompraCodigo = "PENDIENTE",
                     ClaveIdempotencia = Guid.NewGuid()
                 };
-                db.Compras.Add(compra);
-                db.SaveChanges();
+                if (compraExistente == null)
+                {
+                    db.Compras.Add(compra);
+                    db.SaveChanges();
+                }
 
                 db.Pagoes.Add(new Pago
                 {
                     CompraId = compra.CompraId,
                     FechaPago = ahora,
                     Importe = modeloServidor.Total,
-                    EstadoPagoCodigo = "APROBADO",
+                    EstadoPagoCodigo = pagoAprobado ? "APROBADO" : "RECHAZADO",
                     MetodoPagoCodigo = metodo.Codigo,
                     MarcaTarjetaCodigo = marca.Codigo,
-                    UltimosCuatroDigitos = "0000",
+                    UltimosCuatroDigitos = numero.Substring(numero.Length - 4),
+                    NombreTitular = nombreTitular.Trim(),
                     CodigoOperacion = "SIM-" + Guid.NewGuid().ToString("N").Substring(0, 12).ToUpperInvariant(),
                     EsSimulado = true,
-                    MensajeResultado = "Pago de demostracion confirmado; no se realizo ningun cobro."
+                    MensajeResultado = pagoAprobado
+                        ? "Pago de demostración aprobado; no se realizó ningún cobro."
+                        : "Pago de demostración rechazado por la regla de prueba DP-06."
                 });
 
-                reserva.EstadoReservaCodigo = "CONFIRMADA";
-                reserva.FechaExpiracion = null;
-                foreach (var asignacion in db.ReservaPasajeroVueloes.Where(a => a.ReservaId == reserva.ReservaId))
+                if (pagoAprobado)
                 {
-                    asignacion.EstadoAsignacionCodigo = "CONFIRMADA";
+                    compra.EstadoCompraCodigo = "PAGADA";
+                    reserva.EstadoReservaCodigo = "CONFIRMADA";
+                    reserva.FechaExpiracion = null;
+                    foreach (var asignacion in db.ReservaPasajeroVueloes.Where(a => a.ReservaId == reserva.ReservaId))
+                    {
+                        asignacion.EstadoAsignacionCodigo = "CONFIRMADA";
+                    }
+
+                    EmitirComprobanteSimulado(compra, ahora);
                 }
 
-                EmitirComprobanteSimulado(compra, ahora);
                 db.SaveChanges();
                 transaction.Commit();
             }
 
-            TempData["Aviso"] = "Pago simulado confirmado y comprobante ficticio emitido. No se realizo ningun cobro.";
+            if (!pagoAprobado)
+            {
+                TempData["Aviso"] = "Pago rechazado por la simulación. La reserva sigue pendiente; prueba con una tarjeta de datos ficticios que no termine en 0000.";
+                return RedirectToRoute("PurchasePay", new { id = reserva.ReservaId });
+            }
+
+            TempData["Aviso"] = "Pago simulado confirmado y comprobante académico emitido. No se realizó ningún cobro.";
             return RedirectToRoute("Receipts");
         }
 
@@ -833,12 +897,14 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [Authorize]
         public ActionResult MisReservas(string estado = null)
         {
+            ExpirarReservasVencidas();
             var usuarioId = User.Identity.GetUserId();
+            var puedeConsultarTodas = User.IsInRole("Counter") || User.IsInRole("view");
             var reservas = db.Reservas
                 .Include("EstadoReserva")
                 .Include("Compras.EstadoCompra")
                 .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia.Ruta")
-                .Where(r => r.UsuarioId == usuarioId)
+                .Where(r => r.UsuarioId == usuarioId || puedeConsultarTodas)
                 .OrderByDescending(r => r.FechaCreacion)
                 .ToList();
 
@@ -858,6 +924,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [Authorize]
         public ActionResult Gestionar(int? id)
         {
+            ExpirarReservasVencidas();
             if (!id.HasValue)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
@@ -872,19 +939,83 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("Gestionar", CrearModeloReserva(reserva));
         }
 
+        // CAMBIO: cancelar reservas sin pago y registrar solicitudes de cancelación pagadas sin ejecutar reembolsos.
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public ActionResult SolicitarCancelacion(int id)
+        {
+            ExpirarReservasVencidas();
+            var reserva = ObtenerReservaPropia(id);
+            if (reserva == null)
+            {
+                return HttpNotFound();
+            }
+
+            using (var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable))
+            {
+                db.Database.ExecuteSqlCommand(
+                    "SELECT ReservaId FROM dbo.Reserva WITH (UPDLOCK, HOLDLOCK) WHERE ReservaId = @p0",
+                    reserva.ReservaId);
+                db.Entry(reserva).Reload();
+                if (reserva.EstadoReservaCodigo == "PENDIENTE" && !ReservaPendienteVencida(reserva, DateTime.Now))
+                {
+                    if (!db.EstadoReservas.Any(e => e.Codigo == "CANCELADA") ||
+                        !db.EstadoAsignacions.Any(e => e.Codigo == "CANCELADA") ||
+                        !db.EstadoCompras.Any(e => e.Codigo == "ANULADA"))
+                    {
+                        throw new InvalidOperationException("Faltan estados de cancelación en los catálogos de AerolineaVIP.");
+                    }
+
+                    reserva.EstadoReservaCodigo = "CANCELADA";
+                    reserva.FechaExpiracion = null;
+                    foreach (var asignacion in db.ReservaPasajeroVueloes.Where(a => a.ReservaId == reserva.ReservaId && a.EstadoAsignacionCodigo == "PENDIENTE"))
+                    {
+                        asignacion.EstadoAsignacionCodigo = "CANCELADA";
+                    }
+                    foreach (var compra in db.Compras.Where(c => c.ReservaId == reserva.ReservaId && c.EstadoCompraCodigo == "PENDIENTE"))
+                    {
+                        compra.EstadoCompraCodigo = "ANULADA";
+                    }
+
+                    db.SaveChanges();
+                    transaction.Commit();
+                    TempData["Aviso"] = "Reserva pendiente cancelada; los asientos quedaron disponibles.";
+                }
+                else if (reserva.EstadoReservaCodigo == "CONFIRMADA")
+                {
+                    if (!db.EstadoReservas.Any(e => e.Codigo == "SOLICITUD_CANCELACION"))
+                    {
+                        throw new InvalidOperationException("Ejecute la migración de solicitud de cancelación en la base AerolineaVIP.");
+                    }
+
+                    reserva.EstadoReservaCodigo = "SOLICITUD_CANCELACION";
+                    db.SaveChanges();
+                    transaction.Commit();
+                    TempData["Aviso"] = "Solicitud registrada. La política DP-08 está pendiente de aprobación; no se anuló la compra, no se liberaron asientos ni se ejecutó reembolso.";
+                }
+                else
+                {
+                    transaction.Commit();
+                    TempData["Aviso"] = "La reserva ya no permite solicitar otra cancelación.";
+                }
+            }
+
+            return RedirectToRoute("ManageReservation", new { id = reserva.ReservaId });
+        }
+
         [Authorize]
         public ActionResult CheckIn()
         {
+            ExpirarReservasVencidas();
             var usuarioId = User.Identity.GetUserId();
-            var model = new InterfacesViewModel
-            {
-                Mensaje = "La ventana habilitada depende de la política DP-12; esta pantalla es de consulta y no registra el check-in."
-            };
+            var model = new InterfacesViewModel { Mensaje = TempData["Aviso"] as string };
             var reservas = db.Reservas
                 .Include("EstadoReserva")
                 .Include("Compras.EstadoCompra")
                 .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia.Ruta")
-                .Where(r => r.UsuarioId == usuarioId && r.EstadoReservaCodigo == "CONFIRMADA")
+                .Where(r => r.UsuarioId == usuarioId &&
+                    (r.EstadoReservaCodigo == "CONFIRMADA" || r.EstadoReservaCodigo == "SOLICITUD_CANCELACION"))
                 .OrderByDescending(r => r.FechaCreacion)
                 .ToList();
             foreach (var reserva in reservas)
@@ -894,12 +1025,110 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("CheckIn", model);
         }
 
+        // CAMBIO: aplica DP-12 validando titularidad, pago aprobado, ventana horaria y duplicados en servidor.
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public ActionResult RegistrarCheckIn(string codigoReserva, string documento)
+        {
+            ExpirarReservasVencidas();
+            var codigo = (codigoReserva ?? string.Empty).Trim();
+            var numeroDocumento = (documento ?? string.Empty).Trim();
+            if (codigo.Length == 0 || numeroDocumento.Length < 5 || numeroDocumento.Length > 20)
+            {
+                TempData["Aviso"] = "Ingrese el código de reserva y un documento válido.";
+                return RedirectToAction("CheckIn");
+            }
+
+            var usuarioId = User.Identity.GetUserId();
+            var esCounter = User.IsInRole("Counter");
+            var reserva = db.Reservas
+                .Include("Compras.Pagoes")
+                .Include("ReservaPasajeroVueloes.Pasajero")
+                .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia")
+                .FirstOrDefault(r => r.CodigoReserva == codigo &&
+                    (r.UsuarioId == usuarioId || esCounter));
+            if (reserva == null ||
+                (reserva.EstadoReservaCodigo != "CONFIRMADA" && reserva.EstadoReservaCodigo != "SOLICITUD_CANCELACION") ||
+                !reserva.Compras.Any(c => c.EstadoCompraCodigo == "PAGADA" && c.Pagoes.Any(p => p.EstadoPagoCodigo == "APROBADO")))
+            {
+                TempData["Aviso"] = "No se encontró una reserva confirmada y pagada para esos datos.";
+                return RedirectToAction("CheckIn");
+            }
+
+            var asignacionesPasajero = reserva.ReservaPasajeroVueloes
+                .Where(a => a.EstadoAsignacionCodigo == "CONFIRMADA" &&
+                    string.Equals(a.Pasajero.NumeroDocumento, numeroDocumento, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var primerTramo = reserva.ReservaPasajeroVueloes
+                .OrderBy(a => a.Vuelo.FechaOperacion)
+                .ThenBy(a => a.Vuelo.Frecuencia.HoraSalida)
+                .FirstOrDefault();
+            if (asignacionesPasajero.Count == 0 || primerTramo == null)
+            {
+                TempData["Aviso"] = "El documento no corresponde a un pasajero confirmado de esa reserva.";
+                return RedirectToAction("CheckIn");
+            }
+
+            var salidaInicial = primerTramo.Vuelo.FechaOperacion.Date.Add(primerTramo.Vuelo.Frecuencia.HoraSalida);
+            var abre = salidaInicial.AddHours(-LeerParametroPositivo("CheckInAperturaHoras"));
+            var cierra = salidaInicial.AddMinutes(-LeerParametroPositivo("CheckInCierreMinutos"));
+            var ahora = DateTime.Now;
+            if (ahora < abre || ahora >= cierra)
+            {
+                TempData["Aviso"] = "El check-in abre " + abre.ToString("dd/MM/yyyy HH:mm") +
+                    " y cierra " + cierra.ToString("dd/MM/yyyy HH:mm") + ".";
+                return RedirectToAction("CheckIn");
+            }
+
+            using (var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable))
+            {
+                db.Database.ExecuteSqlCommand(
+                    "SELECT ReservaId FROM dbo.Reserva WITH (UPDLOCK, HOLDLOCK) WHERE ReservaId = @p0",
+                    reserva.ReservaId);
+                var estadoActual = db.Reservas.Where(r => r.ReservaId == reserva.ReservaId)
+                    .Select(r => r.EstadoReservaCodigo).FirstOrDefault();
+                if (estadoActual != "CONFIRMADA" && estadoActual != "SOLICITUD_CANCELACION")
+                {
+                    transaction.Commit();
+                    TempData["Aviso"] = "La reserva cambió de estado y ya no permite el check-in.";
+                    return RedirectToAction("CheckIn");
+                }
+
+                if (!db.EstadoCheckIns.Any(e => e.Codigo == "COMPLETADO"))
+                {
+                    throw new InvalidOperationException("Falta configurar el estado COMPLETADO para check-in.");
+                }
+
+                var idsAsignacion = asignacionesPasajero.Select(a => a.AsignacionId).ToList();
+                var existentes = new HashSet<int>(db.CheckIns.AsNoTracking()
+                    .Where(c => idsAsignacion.Contains(c.AsignacionId) && c.EstadoCheckInCodigo == "COMPLETADO")
+                    .Select(c => c.AsignacionId)
+                    .ToList());
+                foreach (var asignacion in asignacionesPasajero.Where(a => !existentes.Contains(a.AsignacionId)))
+                {
+                    db.CheckIns.Add(new CheckIn
+                    {
+                        AsignacionId = asignacion.AsignacionId,
+                        FechaRegistro = ahora,
+                        EstadoCheckInCodigo = "COMPLETADO"
+                    });
+                }
+                db.SaveChanges();
+                transaction.Commit();
+            }
+
+            TempData["Aviso"] = "Check-in registrado para los tramos confirmados de " +
+                asignacionesPasajero[0].Pasajero.Nombres + " " + asignacionesPasajero[0].Pasajero.Apellidos + ".";
+            return RedirectToAction("CheckIn");
+        }
+
         private bool EmitirComprobanteParaPagoSimulado(int reservaId)
         {
             using (var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable))
             {
-                var compra = db.Compras.FirstOrDefault(c => c.ReservaId == reservaId);
-                if (compra == null || !db.Pagoes.Any(p => p.CompraId == compra.CompraId && p.EsSimulado))
+                var compra = db.Compras.FirstOrDefault(c => c.ReservaId == reservaId && c.EstadoCompraCodigo == "PAGADA");
+                if (compra == null || !db.Pagoes.Any(p => p.CompraId == compra.CompraId && p.EsSimulado && p.EstadoPagoCodigo == "APROBADO"))
                 {
                     transaction.Commit();
                     return false;
@@ -1030,10 +1259,10 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var model = ObtenerResumenAdministrativo();
             foreach (var acceso in new[]
             {
-                Acceso("Pasajeros", "No hay un CRUD administrativo implementado; los datos personales se consultan solo dentro de una operación autorizada.", null, null),
-                Acceso("Reservas", "La consulta administrativa de reservas aún requiere una pantalla dedicada.", null, null),
+                Acceso("Pasajeros", "Buscar, consultar y corregir los datos vinculados a reservas existentes.", "Interfaces", "AdminPasajeros"),
+                Acceso("Reservas", "Consultar reservas persistidas y gestionar solicitudes autorizadas.", "Interfaces", "MisReservas"),
                 Acceso("Tipos de documento", "Administrar el catálogo habilitado.", "TipoDocumentoIdentidads", "Index"),
-                Acceso("Usuarios", "La administración de cuentas y roles se realiza con Identity; no se expone aquí un CRUD genérico.", null, null)
+                Acceso("Usuarios", "SuperUsuario puede asignar roles operativos Cliente y Counter.", User.IsInRole("SuperUsuario") ? "Interfaces" : null, User.IsInRole("SuperUsuario") ? "AdminUsuarios" : null)
             })
             {
                 model.AccesosAdministrativos.Add(acceso);
@@ -1041,10 +1270,345 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("AdminModulo", model);
         }
 
-        [Authorize(Roles = "view")]
-        public ActionResult AdminReportes()
+        // CAMBIO: el personal autorizado consulta y corrige pasajeros sin borrar su historial de reservas.
+        [Authorize(Roles = "Administrador,SuperUsuario")]
+        public ActionResult AdminPasajeros(string busqueda = null)
         {
-            return View("Reportes", ObtenerResumenAdministrativo());
+            var model = CrearModeloAdministracionPasajeros(busqueda);
+            if (model.Busqueda.Length > 100)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            if (string.IsNullOrWhiteSpace(model.Busqueda) || model.Busqueda.Length < 3)
+            {
+                model.Aviso = "Ingrese al menos 3 caracteres para buscar pasajeros.";
+                return View("AdminPasajeros", model);
+            }
+
+            var termino = model.Busqueda;
+            model.Pasajeros = db.Pasajeroes
+                .Where(p => p.NumeroDocumento.Contains(termino) || p.Nombres.Contains(termino) ||
+                    p.Apellidos.Contains(termino) || (p.Correo != null && p.Correo.Contains(termino)))
+                .OrderBy(p => p.Apellidos)
+                .ThenBy(p => p.Nombres)
+                .Select(p => new PasajeroAdministracionItemViewModel
+                {
+                    PasajeroId = p.PasajeroId,
+                    TipoDocumento = p.TipoDocumentoIdentidad.Descripcion,
+                    NumeroDocumento = p.NumeroDocumento,
+                    NombreCompleto = p.Nombres + " " + p.Apellidos,
+                    Correo = p.Correo,
+                    ReservasAsociadas = p.ReservaPasajeroVueloes.Select(a => a.ReservaId).Distinct().Count()
+                })
+                .ToList();
+            model.Aviso = model.Pasajeros.Count == 0 ? "No se encontraron pasajeros con esos datos." : null;
+            return View("AdminPasajeros", model);
+        }
+
+        [Authorize(Roles = "Administrador,SuperUsuario")]
+        public ActionResult CrearPasajeroAdmin(string busqueda = null)
+        {
+            var model = CrearModeloAdministracionPasajeros(busqueda);
+            model.Formulario = new PasajeroAdministracionFormularioViewModel();
+            return View("AdminPasajeros", model);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [ValidateAntiForgeryToken]
+        public ActionResult CrearPasajeroAdmin(AdministracionPasajerosViewModel model)
+        {
+            if (model == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            if (model.Formulario == null)
+            {
+                model.Formulario = new PasajeroAdministracionFormularioViewModel();
+                ModelState.AddModelError("Formulario", "Los datos del pasajero son obligatorios.");
+            }
+            NormalizarPasajero(model.Formulario);
+            ValidarPasajeroAdmin(model.Formulario);
+            if (ModelState.IsValid)
+            {
+                var pasajero = new Pasajero
+                {
+                    TipoDocumentoCodigo = model.Formulario.TipoDocumentoCodigo,
+                    NumeroDocumento = model.Formulario.NumeroDocumento,
+                    Nombres = model.Formulario.Nombres,
+                    Apellidos = model.Formulario.Apellidos,
+                    FechaNacimiento = model.Formulario.FechaNacimiento,
+                    Correo = model.Formulario.Correo,
+                    Telefono = model.Formulario.Telefono,
+                    FechaRegistro = DateTime.Now
+                };
+                db.Pasajeroes.Add(pasajero);
+                db.SaveChanges();
+                TempData["AvisoPasajeros"] = "Pasajero registrado correctamente.";
+                return RedirectToAction("AdminPasajeros", new { busqueda = pasajero.NumeroDocumento });
+            }
+
+            PrepararModeloPasajeroAdmin(model);
+            return View("AdminPasajeros", model);
+        }
+
+        [Authorize(Roles = "Administrador,SuperUsuario")]
+        public ActionResult EditarPasajeroAdmin(int? id)
+        {
+            if (!id.HasValue)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var pasajero = db.Pasajeroes.Find(id.Value);
+            if (pasajero == null)
+            {
+                return HttpNotFound();
+            }
+
+            var model = CrearModeloAdministracionPasajeros(pasajero.NumeroDocumento);
+            model.Formulario = new PasajeroAdministracionFormularioViewModel
+            {
+                PasajeroId = pasajero.PasajeroId,
+                TipoDocumentoCodigo = pasajero.TipoDocumentoCodigo,
+                NumeroDocumento = pasajero.NumeroDocumento,
+                Nombres = pasajero.Nombres,
+                Apellidos = pasajero.Apellidos,
+                FechaNacimiento = pasajero.FechaNacimiento,
+                Correo = pasajero.Correo,
+                Telefono = pasajero.Telefono
+            };
+            return View("AdminPasajeros", model);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditarPasajeroAdmin(AdministracionPasajerosViewModel model)
+        {
+            if (model == null || model.Formulario == null || !model.Formulario.PasajeroId.HasValue)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+
+            NormalizarPasajero(model.Formulario);
+            ValidarPasajeroAdmin(model.Formulario);
+            if (ModelState.IsValid)
+            {
+                var pasajero = db.Pasajeroes.Find(model.Formulario.PasajeroId.Value);
+                if (pasajero == null)
+                {
+                    return HttpNotFound();
+                }
+                pasajero.TipoDocumentoCodigo = model.Formulario.TipoDocumentoCodigo;
+                pasajero.NumeroDocumento = model.Formulario.NumeroDocumento;
+                pasajero.Nombres = model.Formulario.Nombres;
+                pasajero.Apellidos = model.Formulario.Apellidos;
+                pasajero.FechaNacimiento = model.Formulario.FechaNacimiento;
+                pasajero.Correo = model.Formulario.Correo;
+                pasajero.Telefono = model.Formulario.Telefono;
+                db.SaveChanges();
+                TempData["AvisoPasajeros"] = "Los datos del pasajero fueron actualizados.";
+                return RedirectToAction("AdminPasajeros", new { busqueda = pasajero.NumeroDocumento });
+            }
+
+            PrepararModeloPasajeroAdmin(model);
+            return View("AdminPasajeros", model);
+        }
+
+        private AdministracionPasajerosViewModel CrearModeloAdministracionPasajeros(string busqueda)
+        {
+            return new AdministracionPasajerosViewModel
+            {
+                Busqueda = (busqueda ?? string.Empty).Trim(),
+                Aviso = TempData["AvisoPasajeros"] as string,
+                TiposDocumento = CrearOpcionesTipoDocumento(null)
+            };
+        }
+
+        private void PrepararModeloPasajeroAdmin(AdministracionPasajerosViewModel model)
+        {
+            model.TiposDocumento = CrearOpcionesTipoDocumento(model.Formulario.TipoDocumentoCodigo);
+            model.Aviso = model.Formulario.PasajeroId.HasValue ? "Corrija los errores para actualizar el registro." : "Corrija los errores para registrar el pasajero.";
+        }
+
+        private IList<SelectListItem> CrearOpcionesTipoDocumento(string seleccionado)
+        {
+            return db.TipoDocumentoIdentidads.OrderBy(t => t.Descripcion)
+                .Select(t => new SelectListItem
+                {
+                    Value = t.Codigo,
+                    Text = t.Descripcion,
+                    Selected = t.Codigo == seleccionado
+                })
+                .ToList();
+        }
+
+        private void ValidarPasajeroAdmin(PasajeroAdministracionFormularioViewModel formulario)
+        {
+            if (formulario == null)
+            {
+                ModelState.AddModelError("Formulario", "Los datos del pasajero son obligatorios.");
+                return;
+            }
+            if (formulario.FechaNacimiento.HasValue && formulario.FechaNacimiento.Value.Date > DateTime.Today)
+            {
+                ModelState.AddModelError("Formulario.FechaNacimiento", "La fecha de nacimiento no puede ser futura.");
+            }
+            if (formulario.FechaNacimiento.HasValue && formulario.FechaNacimiento.Value.Date <= new DateTime(1900, 1, 1))
+            {
+                ModelState.AddModelError("Formulario.FechaNacimiento", "La fecha de nacimiento debe ser posterior al 01/01/1900.");
+            }
+            if (!db.TipoDocumentoIdentidads.Any(t => t.Codigo == formulario.TipoDocumentoCodigo))
+            {
+                ModelState.AddModelError("Formulario.TipoDocumentoCodigo", "El tipo de documento seleccionado no está disponible.");
+            }
+            if (db.Pasajeroes.Any(p => p.TipoDocumentoCodigo == formulario.TipoDocumentoCodigo &&
+                p.NumeroDocumento == formulario.NumeroDocumento && p.PasajeroId != formulario.PasajeroId))
+            {
+                ModelState.AddModelError("Formulario.NumeroDocumento", "Ya existe un pasajero con ese tipo y número de documento.");
+            }
+        }
+
+        private static void NormalizarPasajero(PasajeroAdministracionFormularioViewModel formulario)
+        {
+            if (formulario == null)
+            {
+                return;
+            }
+            formulario.TipoDocumentoCodigo = (formulario.TipoDocumentoCodigo ?? string.Empty).Trim();
+            formulario.NumeroDocumento = (formulario.NumeroDocumento ?? string.Empty).Trim();
+            formulario.Nombres = (formulario.Nombres ?? string.Empty).Trim();
+            formulario.Apellidos = (formulario.Apellidos ?? string.Empty).Trim();
+            formulario.Correo = string.IsNullOrWhiteSpace(formulario.Correo) ? null : formulario.Correo.Trim();
+            formulario.Telefono = string.IsNullOrWhiteSpace(formulario.Telefono) ? null : formulario.Telefono.Trim();
+        }
+
+        // CAMBIO: Identity almacena usuarios y roles; solo SuperUsuario administra roles operativos.
+        [Authorize(Roles = "SuperUsuario")]
+        public ActionResult AdminUsuarios()
+        {
+            ViewBag.TitleModulo = "Usuarios y roles";
+            ViewBag.NumeroPantalla = 20;
+            var model = ObtenerResumenAdministrativo();
+            ViewBag.Aviso = TempData["Aviso"] as string;
+            using (var identityDb = new ApplicationDbContext())
+            using (var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb)))
+            {
+                foreach (var usuario in identityDb.Users.OrderBy(u => u.UserName).ToList())
+                {
+                    var roles = userManager.GetRoles(usuario.Id);
+                    model.UsuariosAdministrativos.Add(new UsuarioAdministrativoViewModel
+                    {
+                        Id = usuario.Id,
+                        Nombre = usuario.UserName,
+                        Correo = usuario.Email,
+                        Roles = string.Join(", ", roles),
+                        EsEditable = usuario.Id != User.Identity.GetUserId() && roles.All(r => r == "Cliente" || r == "Counter")
+                    });
+                }
+            }
+
+            return View("AdminModulo", model);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "SuperUsuario")]
+        [ValidateAntiForgeryToken]
+        public ActionResult CambiarRolUsuario(string id, string rol)
+        {
+            if (string.IsNullOrWhiteSpace(id) || (rol != "Cliente" && rol != "Counter"))
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            if (id == User.Identity.GetUserId())
+            {
+                TempData["Aviso"] = "No puedes cambiar el rol de tu propia cuenta.";
+                return RedirectToAction("AdminUsuarios");
+            }
+
+            using (var identityDb = new ApplicationDbContext())
+            using (var transaction = identityDb.Database.BeginTransaction(IsolationLevel.Serializable))
+            using (var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb)))
+            {
+                var usuario = userManager.FindById(id);
+                if (usuario == null)
+                {
+                    return HttpNotFound();
+                }
+
+                var rolesActuales = userManager.GetRoles(usuario.Id);
+                if (rolesActuales.Any(r => r != "Cliente" && r != "Counter"))
+                {
+                    TempData["Aviso"] = "Las cuentas administrativas solo se cambian mediante la configuración local de inicio.";
+                    transaction.Commit();
+                    return RedirectToAction("AdminUsuarios");
+                }
+
+                if (!userManager.IsInRole(usuario.Id, rol))
+                {
+                    VerificarResultadoIdentity(userManager.AddToRole(usuario.Id, rol), "asignar el rol " + rol);
+                }
+                foreach (var rolActual in rolesActuales.Where(r => r != rol))
+                {
+                    VerificarResultadoIdentity(userManager.RemoveFromRole(usuario.Id, rolActual), "retirar el rol " + rolActual);
+                }
+
+                // CAMBIO: fuerza la renovación de las cookies Identity al cambiar permisos del usuario.
+                VerificarResultadoIdentity(userManager.UpdateSecurityStamp(usuario.Id), "invalidar la sesión anterior");
+                transaction.Commit();
+            }
+
+            TempData["Aviso"] = "Rol actualizado. El usuario debe iniciar sesión nuevamente para renovar su sesión y permisos.";
+            return RedirectToAction("AdminUsuarios");
+        }
+
+        private static void VerificarResultadoIdentity(IdentityResult resultado, string operacion)
+        {
+            if (!resultado.Succeeded)
+            {
+                throw new InvalidOperationException("No se pudo " + operacion + ": " + string.Join("; ", resultado.Errors));
+            }
+        }
+
+        // CAMBIO: agrega filtros por fecha y agrupaciones reales de reservas y compras.
+        [Authorize(Roles = "view")]
+        public ActionResult AdminReportes(DateTime? desde, DateTime? hasta)
+        {
+            var model = ObtenerResumenAdministrativo();
+            model.ReporteDesde = desde;
+            model.ReporteHasta = hasta;
+            if ((desde.HasValue && hasta.HasValue && desde.Value.Date > hasta.Value.Date) ||
+                (hasta.HasValue && hasta.Value.Date == DateTime.MaxValue.Date))
+            {
+                model.ReporteAviso = "El rango de fechas no es válido.";
+                return View("Reportes", model);
+            }
+
+            var reservas = db.Reservas.AsQueryable();
+            var compras = db.Compras.AsQueryable();
+            if (desde.HasValue)
+            {
+                reservas = reservas.Where(r => r.FechaCreacion >= desde.Value.Date);
+                compras = compras.Where(c => c.FechaCompra >= desde.Value.Date);
+            }
+            if (hasta.HasValue)
+            {
+                var limiteSuperior = hasta.Value.Date.AddDays(1);
+                reservas = reservas.Where(r => r.FechaCreacion < limiteSuperior);
+                compras = compras.Where(c => c.FechaCompra < limiteSuperior);
+            }
+
+            model.ReservasPorEstado = reservas
+                .GroupBy(r => r.EstadoReservaCodigo)
+                .Select(g => new EstadoReporteViewModel { Estado = g.Key, Total = g.Count() })
+                .OrderBy(x => x.Estado)
+                .ToList();
+            model.ComprasPorEstado = compras
+                .GroupBy(c => c.EstadoCompraCodigo)
+                .Select(g => new EstadoReporteViewModel { Estado = g.Key, Total = g.Count() })
+                .OrderBy(x => x.Estado)
+                .ToList();
+            return View("Reportes", model);
         }
 
         private PagoSimuladoViewModel CrearModeloPago(Reserva reserva)
@@ -1123,9 +1687,57 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 .ToList();
         }
 
+        // CAMBIO: la tabla de días/horarios se alimenta de las frecuencias activas de cada ruta.
+        private void CargarRutasOperacion(InterfacesViewModel model, int? aeropuertoOrigenId)
+        {
+            var aeropuertosActivos = db.Aeropuertoes.Where(a => a.Activo).Select(a => a.AeropuertoId).ToList();
+            var rutas = db.Rutas
+                .Where(r => r.Activa && aeropuertosActivos.Contains(r.AeropuertoOrigenId) &&
+                    aeropuertosActivos.Contains(r.AeropuertoDestinoId));
+            if (aeropuertoOrigenId.HasValue)
+            {
+                rutas = rutas.Where(r => r.AeropuertoOrigenId == aeropuertoOrigenId.Value);
+            }
+
+            var datosRutas = rutas.Select(r => new
+            {
+                r.RutaId,
+                r.AeropuertoOrigenId,
+                r.AeropuertoDestinoId
+            }).ToList();
+            var rutaIds = datosRutas.Select(r => r.RutaId).ToList();
+            var frecuencias = db.Frecuencias
+                .Where(f => f.Activa && rutaIds.Contains(f.RutaId))
+                .Select(f => new { f.RutaId, f.DiaSemana, f.HoraSalida, f.HoraLlegada })
+                .ToList();
+            var aeropuertos = db.Aeropuertoes
+                .Where(a => aeropuertosActivos.Contains(a.AeropuertoId))
+                .ToDictionary(a => a.AeropuertoId);
+            var nombresDias = new[] { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" };
+
+            foreach (var ruta in datosRutas)
+            {
+                var frecuenciasRuta = frecuencias.Where(f => f.RutaId == ruta.RutaId).ToList();
+                if (frecuenciasRuta.Count == 0)
+                {
+                    continue;
+                }
+
+                model.RutasOperacion.Add(new RutaOperacionViewModel
+                {
+                    Ruta = aeropuertos[ruta.AeropuertoOrigenId].Localidad + " (" + aeropuertos[ruta.AeropuertoOrigenId].CodigoIATA + ") → " +
+                        aeropuertos[ruta.AeropuertoDestinoId].Localidad + " (" + aeropuertos[ruta.AeropuertoDestinoId].CodigoIATA + ")",
+                    DiasHorarios = string.Join("; ", frecuenciasRuta.GroupBy(f => (int)f.DiaSemana).OrderBy(g => g.Key)
+                        .Where(g => g.Key >= 1 && g.Key <= 7)
+                        .Select(g => nombresDias[g.Key - 1] + ": " + string.Join(", ", g.OrderBy(f => f.HoraSalida)
+                            .Select(f => f.HoraSalida.ToString(@"hh\:mm") + "–" + f.HoraLlegada.ToString(@"hh\:mm")).Distinct())))
+                });
+            }
+        }
+
         private void CargarDestinos(InterfacesViewModel model, int? aeropuertoOrigenId)
         {
-            var rutas = db.Rutas.Where(r => r.Activa);
+            var rutas = db.Rutas.Where(r => r.Activa && r.Frecuencias.Any(f => f.Activa));
             if (aeropuertoOrigenId.HasValue)
             {
                 rutas = rutas.Where(r => r.AeropuertoOrigenId == aeropuertoOrigenId.Value);
@@ -1290,7 +1902,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var confirmacion = new ReservaConfirmacionViewModel
             {
                 MonedaCodigo = "USD",
-                CondicionesReserva = "La reserva queda pendiente de pago durante 15 minutos. Si vence el plazo, los asientos se liberan y debes iniciar una nueva reserva."
+                CondicionesReserva = "La reserva queda pendiente de pago hasta por " + LeerParametroPositivo("ReservaRetencionMinutos") + " minutos o hasta la salida del vuelo, lo que ocurra primero. Si vence el plazo, los asientos se liberan."
             };
 
             var borrador = CrearModeloBorrador();
@@ -1337,13 +1949,14 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         private Reserva ObtenerReservaPropia(int reservaId)
         {
             var usuarioId = User.Identity.GetUserId();
+            var puedeAsistir = User.IsInRole("Counter") || User.IsInRole("view");
             return db.Reservas
                 .Include("EstadoReserva")
                 .Include("ReservaPasajeroVueloes.Pasajero")
                 .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia.Ruta")
                 .Include("Compras.EstadoCompra")
                 .Include("Compras.Pagoes.EstadoPago")
-                .FirstOrDefault(r => r.ReservaId == reservaId && r.UsuarioId == usuarioId);
+                .FirstOrDefault(r => r.ReservaId == reservaId && (r.UsuarioId == usuarioId || puedeAsistir));
         }
 
         private ReservaInterfazViewModel CrearModeloReserva(Reserva reserva)
@@ -1361,6 +1974,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 EstadoReserva = ReservaPendienteVencida(reserva, DateTime.Now) ? "Vencida" : reserva.EstadoReserva.Descripcion,
                 EstadoCompra = compra == null ? "Sin compra" : compra.EstadoCompra.Descripcion,
                 PermitePago = reserva.EstadoReservaCodigo == "PENDIENTE" && !ReservaPendienteVencida(reserva, DateTime.Now),
+                PermiteCancelar = reserva.EstadoReservaCodigo == "CONFIRMADA" ||
+                    (reserva.EstadoReservaCodigo == "PENDIENTE" && !ReservaPendienteVencida(reserva, DateTime.Now)),
                 Importe = compra == null ? asignaciones.Sum(a => a.ImporteTramo) : compra.Importe,
                 Moneda = compra == null ? "USD" : compra.MonedaCodigo
             };

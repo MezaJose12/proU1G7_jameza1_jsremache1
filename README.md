@@ -1,11 +1,97 @@
-# proU1G7_jameza1_jsremache1
+# Aerolinea VIP - guia de uso
 
-## Datos de demostración
+Aplicacion web academica de reservas de vuelos, seleccion de asientos, compra/pago simulado y modulos de consulta administrativa. Usa ASP.NET MVC 5, ASP.NET Identity, Entity Framework 6 y SQL Server.
 
-La aplicación puede cargar registros sintéticos para revisar las pantallas de vuelos, asientos, reservas, pago simulado y administración. La carga se ejecuta al iniciar la aplicación únicamente en una compilación `Debug` cuando `EnableDemoData` está en `true` en `proU1G7_jameza1_jsremache1/Web.config`.
+> **Importante:** es una demostracion. No procesa cobros, no uses tarjetas ni datos personales reales. Las compras y los comprobantes generados por el flujo de pago son registros academicos; no tienen validez tributaria ni comercial.
 
-El seeder agrega solo datos faltantes: ruta Quito–Guayaquil, vuelos para los próximos 14 días, configuración de siete asientos, catálogos mínimos y dos reservas de demostración vinculadas a la cuenta `SuperAdmin` (una confirmada y otra pendiente). No crea pagos ni comprobantes reales. La pantalla de comprobantes conserva su estado vacío hasta que exista un comprobante.
+## 1. Requisitos y puesta en marcha
 
-Al confirmar una reserva desde el flujo de compra, la aplicación guarda la reserva, los pasajeros y los asientos en una transacción. Las nuevas reservas quedan pendientes durante 15 minutos; al vencer, sus asientos vuelven a estar disponibles. El pago es solo una simulación: no se realiza un cobro ni se guardan datos de tarjeta, compras o pagos.
+- Visual Studio con la carga de trabajo **ASP.NET y desarrollo web** y soporte para .NET Framework 4.8.1.
+- SQL Server 2016 o posterior y SQL Server Management Studio (SSMS).
+- NuGet para restaurar los paquetes del proyecto.
 
-Para desactivar los datos demo, cambia `EnableDemoData` a `false`. La transformación `Web.Release.config` lo desactiva en despliegues Release; no habilites el seeder contra una base de datos de producción. Los registros insertados no se eliminan automáticamente al desactivar la opción.
+Pasos para ejecutar localmente:
+
+1. Abre `src\proU1G7_jameza1_jsremache1.slnx` en Visual Studio.
+2. En SSMS, abre `database\Script_BD_AerolineaVIP.sql` y ejecútalo completo en una instancia local. Crea `AerolineaVIP` (datos funcionales) y `AerolineaVIP_Identity` (usuarios/roles). Para una base de dominio ya existente, ejecuta `database\Migracion_SolicitudCancelacion.sql` una sola vez.
+   - **Advertencia:** la parte de dominio del script principal elimina y vuelve a crear sus objetos y datos. No lo vuelvas a ejecutar sobre una base con informacion que quieras conservar. La parte de Identity conserva las cuentas existentes.
+3. Revisa `DefaultConnection` y `AerolineaVIPEntities` en `src\proU1G7_jameza1_jsremache1\Web.config`. Ambas usan autenticacion integrada; cambia `Data Source` si tu instancia no es local. La identidad de Windows que ejecuta IIS Express necesita acceso a las dos bases.
+4. Para crear las cuentas iniciales, completa localmente las claves `InitialSuperUserUserName`, `InitialSuperUserEmail`, `InitialSuperUserPassword` y, si hace falta, las equivalentes `InitialAdministrator...`. En blanco no se crean cuentas; no guardes contrasenas reales en Git.
+5. Restaura los paquetes NuGet si Visual Studio lo solicita.
+6. Selecciona el proyecto web `proU1G7_jameza1_jsremache1` como proyecto de inicio y ejecuta con IIS Express (`F5`). La URL inicial abre la pagina principal.
+
+## 2. Cuentas de prueba e inicio de sesion
+
+`Global.asax.cs` crea las cuentas iniciales solo cuando las tres claves locales de usuario, correo y contrasena estan configuradas en `Web.config`. No hay credenciales predeterminadas en el codigo ni en el repositorio. Al iniciar, las cuentas configuradas reciben sus roles correspondientes; si una cuenta ya existe, se conserva su contrasena.
+
+En **Iniciar sesion** puedes ingresar el nombre de usuario o el correo junto con la contrasena. Los intentos fallidos pueden bloquear temporalmente la cuenta. El rol publico es `Cliente`; solo un `SuperUsuario` puede crear cuentas con roles adicionales, incluido `Counter`.
+
+### Crear una cuenta nueva
+
+1. Selecciona **Registrarse / Crear cuenta** desde la barra superior o desde la pantalla de inicio de sesion.
+2. Completa nombre de usuario, correo, contrasena y confirmacion.
+3. El registro publico asigna automaticamente el rol `Cliente` e inicia la sesion al completarse.
+4. La contrasena debe tener al menos 6 caracteres, mayuscula, minuscula, digito y caracter no alfanumerico.
+5. Solo una cuenta autenticada con rol `SuperUsuario` puede ver y elegir un rol en el formulario de registro. No uses el registro publico para otorgarte privilegios.
+
+La recuperacion/cambio por correo requiere configurar un servicio de correo; el servicio de envio del proyecto es una plantilla sin proveedor real.
+
+## 3. Datos demo
+
+El seeder sintetico solo corre en compilacion `Debug` cuando configuras expresamente `EnableDemoData=true`; por defecto esta desactivado. No habilites estos vuelos de demostracion contra una base con operaciones reales. Desactivar el seeder no borra los datos ya insertados.
+
+La retencion de reservas y la ventana de check-in se parametrizan en `Web.config` con `ReservaRetencionMinutos` (30), `CheckInAperturaHoras` (24) y `CheckInCierreMinutos` (60). La reserva vence al llegar al primer limite entre su retencion y la salida del vuelo.
+
+## 4. Recorrido de las pantallas / wireframes
+
+Las pantallas publicas de busqueda se pueden visitar sin cuenta. Para guardar una reserva hay que iniciar sesion. La barra superior ofrece Inicio, Buscar vuelos y, cuando ya iniciaste sesion, Mis reservas, Check-in y Comprobantes.
+
+### Compra de un vuelo
+
+1. **Pantalla 5 - Buscar vuelos** (`/Vuelos/Buscar`): elige origen, destino, fecha y de 1 a 7 pasajeros; pulsa **Buscar**. Los destinos disponibles dependen de rutas activas.
+2. **Pantalla 6 - Resultados** (`/Vuelos/Resultados`): compara horario, tarifa, estado y asientos disponibles. Puedes revisar disponibilidad o continuar con **Seleccionar vuelo**. Si no has iniciado sesion, el sistema te lleva a iniciar sesion y luego regresa al vuelo.
+3. **Pantalla 7 - Disponibilidad de asientos** (`/Vuelos/Disponibilidad/{id}`): consulta el mapa/estado de los asientos sin reservarlos.
+4. **Pantalla 8 - Seleccion de asientos** (`/Reservas/SeleccionAsiento/{id}`): elige un asiento disponible por pasajero y pulsa **Continuar a pasajeros**. La seleccion guardada en la sesion es temporal; el servidor vuelve a verificar disponibilidad al confirmar la reserva.
+5. **Pantalla 9 - Datos de pasajeros** (`/Reservas/Pasajeros`): completa tipo y numero de documento, nombres y apellidos de cada pasajero; continua a la revision.
+6. **Pantalla 10 - Revision y confirmacion de reserva** (`/Reservas/Confirmar`): revisa vuelo, pasajeros, asientos, importe y condiciones. Acepta las condiciones y elige **Confirmar reserva** para guardar una reserva pendiente o **Confirmar y pagar** para ir al pago. La retencion se configura en minutos y nunca supera la salida del vuelo.
+7. **Pantalla 11 - Pago simulado** (`/Compras/Pagar/{id}`): selecciona metodo y marca, completa datos ficticios validos y pulsa **Revisar y pagar**. En el modal, pulsa **Pagar** para registrar el intento. Una tarjeta de prueba cuyo numero termina en `0000` se rechaza; otro final de prueba permite simular la aprobacion. No se envia una autorizacion bancaria ni se guardan numero completo, CVV o vencimiento.
+8. **Pantalla 12 - Estado/confirmacion** (`/Compras/Confirmacion/{id}`): consulta el estado de la reserva y compra.
+
+### Area personal y servicio al pasajero
+
+- **Pantalla 13 - Mis reservas** (`/Reservas/MisReservas`): lista las operaciones del cliente; los roles operativos autorizados pueden consultar reservas para asistir. Las pendientes permiten volver al pago mientras no venzan.
+- **Pantalla 14 - Gestionar reserva** (`/Reservas/Gestionar/{id}`): consulta itinerario, pasajeros, asientos y estados. Cancela una reserva sin pago y libera sus asientos; para una compra pagada solo registra una solicitud, sin ejecutar un reembolso mientras DP-08 siga pendiente de aprobacion.
+- **Pantalla 15 - Check-in** (`/CheckIn/Index`): registra check-in por codigo de reserva y documento del pasajero, solo para compra pagada y dentro de la ventana parametrizada. Es un registro academico, no emite una tarjeta de embarque.
+- **Pantalla 16 - Comprobantes** (`/Comprobantes/Index`): consulta comprobantes simulados asociados a compras. Son ficticios y no tienen validez tributaria.
+
+### Administracion
+
+Los usuarios con permiso `view` acceden a **Administracion** desde la barra o `/Admin/Index`.
+
+- **Pantalla 17 - Panel administrativo** (`/Admin/Index`): resumen de vuelos, aeronaves, reservas y pasajeros.
+- **Pantalla 18 - Vuelos y rutas** (`/Admin/Vuelos`): accesos a vuelos, frecuencias, rutas, itinerarios y aeropuertos.
+- **Pantalla 19 - Flota y asientos** (`/Admin/Aeronaves`): accesos a aeronaves, modelos y asientos.
+- **Pantalla 20 - Gestion operativa** (`/Admin/Gestion`): acceso al catalogo de documentos, consulta de reservas y administración de pasajeros.
+- **Pasajeros** (`/Admin/Pasajeros`): disponible para `Administrador` y `SuperUsuario`; permite buscar, registrar y corregir datos personales, incluyendo los vinculados a reservas. No permite borrar registros para preservar el historial y las referencias de las operaciones.
+- **Usuarios y roles** (`/Interfaces/AdminUsuarios`): solo `SuperUsuario` puede asignar los roles operativos `Cliente` y `Counter`; las cuentas administrativas y la propia cuenta quedan protegidas. El cambio invalida el sello de seguridad de Identity y requiere renovar la sesión.
+- **Pantalla 21 - Reportes** (`/Admin/Reportes`): muestra conteos generales de registros y agrupaciones de reservas/compras por estado, con filtro de fechas de creación. No es un reporte financiero ni exportable.
+
+Los controladores CRUD estan protegidos para `Administrador` y `SuperUsuario`; algunas operaciones destructivas, como eliminar aeronaves, quedan limitadas a `SuperUsuario`. El rol `Counter` puede asistir en los flujos operativos habilitados, sin acceso a la programacion administrativa.
+
+## 5. Comportamiento del pago de demostracion
+
+Cada intento persiste un pago simulado: los rechazos quedan como `RECHAZADO` y la compra puede reintentarse; un aprobado cambia la compra a `PAGADA`, confirma asientos y reserva, y emite un comprobante academico. No es una transaccion real ni acredita el pago de un servicio. No introduzcas datos reales de tarjeta. Para probar el rechazo, usa un numero ficticio que termine en `0000`; para aprobar, usa otro final. La validacion exige solo digitos y la longitud definida para la marca seleccionada, CVV con longitud configurada y una fecha vigente en formato `MM/AA`.
+
+## 6. Rutas principales
+
+| Funcion | Ruta |
+| --- | --- |
+| Inicio de sesion | `/Account/Login` |
+| Registro | `/Account/Register` |
+| Buscar vuelos | `/Vuelos/Buscar` |
+| Mis reservas | `/Reservas/MisReservas` |
+| Check-in | `/CheckIn/Index` |
+| Comprobantes | `/Comprobantes/Index` |
+| Administracion | `/Admin/Index` |
+
+Las rutas de detalle y pasos de compra reciben identificadores, por ejemplo `/Reservas/SeleccionAsiento/123` o `/Compras/Pagar/123`; usa preferentemente los botones y enlaces de la aplicacion para mantener la reserva seleccionada.

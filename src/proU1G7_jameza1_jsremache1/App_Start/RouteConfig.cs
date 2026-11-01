@@ -29,6 +29,7 @@ namespace proU1G7_jameza1_jsremache1
             routes.MapRoute("AdminHome", "Admin/Index", new { controller = "Interfaces", action = "AdminIndex" });
             routes.MapRoute("AdminFlights", "Admin/Vuelos", new { controller = "Interfaces", action = "AdminVuelos" });
             routes.MapRoute("AdminAircraft", "Admin/Aeronaves", new { controller = "Interfaces", action = "AdminAeronaves" });
+            routes.MapRoute("AdminPassengers", "Admin/Pasajeros", new { controller = "Interfaces", action = "AdminPasajeros" });
             routes.MapRoute("AdminManagement", "Admin/Gestion", new { controller = "Interfaces", action = "AdminGestion" });
             routes.MapRoute("AdminReports", "Admin/Reportes", new { controller = "Interfaces", action = "AdminReportes" });
 

@@ -3,8 +3,21 @@
     ViewBag.Title = "Check-in";
 }
 <main class="container py-4" aria-labelledby="page-title">
-    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 15 - Servicio al pasajero</p><h1 id="page-title" class="h2 fw-bold">Check-in</h1><p class="text-secondary">Consulta las reservas confirmadas asociadas a tu cuenta.</p></header>
+    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 15 - Servicio al pasajero</p><h1 id="page-title" class="h2 fw-bold">Check-in</h1><p class="text-secondary">Registra el check-in de cada pasajero confirmado dentro de la ventana habilitada.</p></header>
     @if (!string.IsNullOrWhiteSpace(Model.Mensaje)) { <div class="alert alert-info" role="status">@Model.Mensaje</div> }
+    @using (Html.BeginForm("RegistrarCheckIn", "Interfaces", FormMethod.Post, new { @class = "card shadow-sm mb-4" }))
+    {
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <h2 class="h5">Buscar reserva y pasajero</h2>
+            <p class="text-secondary">Se verifican titularidad, compra pagada, documento y ventana de salida (24 h antes hasta 60 min antes).</p>
+            <div class="row g-3">
+                <div class="col-12 col-md-5"><label for="codigoReserva" class="form-label">Código de reserva</label><input id="codigoReserva" name="codigoReserva" class="form-control" maxlength="20" required /></div>
+                <div class="col-12 col-md-5"><label for="documento" class="form-label">Documento del pasajero</label><input id="documento" name="documento" class="form-control" minlength="5" maxlength="20" required /></div>
+                <div class="col-12 col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">Registrar</button></div>
+            </div>
+        </div>
+    }
     @if (Model.Reservas.Count == 0)
     {
         <section class="card shadow-sm"><div class="card-body text-center py-5"><h2 class="h5">No hay reservas confirmadas</h2><p class="text-secondary">El check-in en linea solo estara disponible para vuelos elegibles.</p>@Html.RouteLink("Mis reservas", "MyReservations", null, new { @class = "btn btn-outline-primary" })</div></section>
@@ -14,9 +27,9 @@
         <div class="row g-3">
             @foreach (var reserva in Model.Reservas)
             {
-                <div class="col-12"><article class="card shadow-sm"><div class="card-body d-flex flex-column flex-md-row justify-content-between gap-3"><div><span class="badge text-bg-success">@reserva.EstadoReserva</span><h2 class="h5 mt-2">@reserva.CodigoReserva - @reserva.Ruta</h2><p class="text-secondary mb-0">@(reserva.FechaViaje.HasValue ? reserva.FechaViaje.Value.ToString("ddd dd/MM/yyyy") : "Fecha pendiente") - @reserva.CantidadPasajeros pasajero(s)</p></div><div class="align-self-md-center"><span class="badge text-bg-light border">Check-in sujeto a ventana habilitada</span></div></div></article></div>
+                <div class="align-self-md-center"><span class="badge text-bg-light border">Ventana: 24 h antes; cierre 60 min antes</span></div></div></article></div>
             }
         </div>
     }
-    <p class="small text-secondary mt-3">La politica de apertura y el registro de tarjetas de embarque deben integrarse antes de habilitar una accion de check-in.</p>
+    <p class="small text-secondary mt-3">El registro es académico; no emite una tarjeta de embarque ni sustituye los controles aeroportuarios.</p>
 </main>

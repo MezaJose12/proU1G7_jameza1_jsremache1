@@ -10,6 +10,8 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
+    // CAMBIO: solo administración puede cambiar las validaciones de marcas de tarjetas.
+    [Authorize(Roles = "Administrador,SuperUsuario")]
     public class MarcaTarjetasController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();
