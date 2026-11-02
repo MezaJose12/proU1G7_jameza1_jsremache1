@@ -31,8 +31,10 @@
                             <h2 class="h5">Resumen de seleccion</h2>
                             <p>Selecciona asientos disponibles para @Model.CantidadPasajeros pasajero(s).</p>
                             <p class="small text-secondary">La seleccion es temporal y no bloquea el inventario.</p>
-                            <button type="submit" class="btn btn-primary">Continuar a pasajeros</button>
-                            @Html.RouteLink("Regresar a resultados", "FlightResults", null, new { @class = "btn btn-outline-secondary mt-2" })
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <button type="submit" class="btn btn-primary">Continuar a pasajeros</button>
+                                @Html.RouteLink("Regresar a resultados", "FlightResults", null, new { @class = "btn btn-outline-secondary" })
+                            </div>
                         </div></div>
                     </aside>
                 </div>

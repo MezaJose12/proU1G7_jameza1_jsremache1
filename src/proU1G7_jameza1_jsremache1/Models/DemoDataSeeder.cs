@@ -97,7 +97,7 @@ namespace proU1G7_jameza1_jsremache1.Models
             EnsureEstadoReserva(db, "EXPIRADA", "Expirada por tiempo de retención");
             EnsureEstadoReserva(db, "CANCELADA", "Cancelada");
             // CAMBIO: permitir probar solicitudes de cancelación sin ejecutar reembolsos.
-            EnsureEstadoReserva(db, "SOLICITUD_CANCELACION", "Solicitud de cancelación pendiente de aprobación");
+            EnsureEstadoReserva(db, "SOLICITUD_CANCELACION", "Solicitud de cancelacion pendiente de aprobacion");
             EnsureEstadoAsignacion(db, "CONFIRMADA", "Confirmada", true, "OCUPADO");
             EnsureEstadoAsignacion(db, "PENDIENTE", "Pendiente", true, "RESERVADO");
             EnsureEstadoVuelo(db, "PROGRAMADO", "Programado");
