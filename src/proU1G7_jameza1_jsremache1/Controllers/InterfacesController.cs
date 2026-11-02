@@ -258,6 +258,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     {
                         ModelState.AddModelError("pasajeros[" + i + "].Documento", "El documento debe tener entre 5 y 20 caracteres.");
                     }
+                    else if (string.Equals(pasajeros[i].TipoDocumento, "CEDULA", StringComparison.OrdinalIgnoreCase)
+                        && !CedulaEcuatoriana.EsValida(pasajeros[i].Documento.Trim()))
+                    {
+                        ModelState.AddModelError("pasajeros[" + i + "].Documento", "Ingrese una cédula ecuatoriana válida de 10 dígitos.");
+                    }
                 }
 
                 if (pasajeros.Where(p => !string.IsNullOrWhiteSpace(p.Documento))

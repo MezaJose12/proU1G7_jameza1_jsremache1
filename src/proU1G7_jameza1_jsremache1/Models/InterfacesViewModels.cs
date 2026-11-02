@@ -235,4 +235,5 @@ namespace proU1G7_jameza1_jsremache1.Models
         [StringLength(20)]
         public string Telefono { get; set; }
     }
-}
+
+    }

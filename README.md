@@ -13,7 +13,7 @@ Aplicacion web academica de reservas de vuelos, seleccion de asientos, compra/pa
 Pasos para ejecutar localmente:
 
 1. Abre `src\proU1G7_jameza1_jsremache1.slnx` en Visual Studio.
-2. En SSMS, abre `database\Script_BD_AerolineaVIP.sql` y ejecútalo completo en una instancia local. Crea `AerolineaVIP` (datos funcionales) y `AerolineaVIP_Identity` (usuarios/roles). Para una base de dominio ya existente, ejecuta `database\Migracion_SolicitudCancelacion.sql` una sola vez.
+2. En SSMS, abre `database\Script_BD_AerolineaVIP.sql` y ejecútalo completo en una instancia local. Crea `AerolineaVIP` (datos funcionales) y `AerolineaVIP_Identity` (usuarios/roles). Para una base de dominio ya existente, ejecuta `database\Migracion_SolicitudCancelacion.sql`; agrega el estado de solicitud y amplía a 21 caracteres los códigos de estado de reserva. Es seguro repetirla.
    - **Advertencia:** la parte de dominio del script principal elimina y vuelve a crear sus objetos y datos. No lo vuelvas a ejecutar sobre una base con informacion que quieras conservar. La parte de Identity conserva las cuentas existentes.
 3. Revisa `DefaultConnection` y `AerolineaVIPEntities` en `src\proU1G7_jameza1_jsremache1\Web.config`. Ambas usan autenticacion integrada; cambia `Data Source` si tu instancia no es local. La identidad de Windows que ejecuta IIS Express necesita acceso a las dos bases.
 4. Para crear las cuentas iniciales, completa localmente las claves `InitialSuperUserUserName`, `InitialSuperUserEmail`, `InitialSuperUserPassword` y, si hace falta, las equivalentes `InitialAdministrator...`. En blanco no se crean cuentas; no guardes contrasenas reales en Git.
@@ -60,7 +60,7 @@ Las pantallas publicas de busqueda se pueden visitar sin cuenta. Para guardar un
 ### Area personal y servicio al pasajero
 
 - **Pantalla 13 - Mis reservas** (`/Reservas/MisReservas`): lista las operaciones del cliente; los roles operativos autorizados pueden consultar reservas para asistir. Las pendientes permiten volver al pago mientras no venzan.
-- **Pantalla 14 - Gestionar reserva** (`/Reservas/Gestionar/{id}`): consulta itinerario, pasajeros, asientos y estados. Cancela una reserva sin pago y libera sus asientos; para una compra pagada solo registra una solicitud, sin ejecutar un reembolso mientras DP-08 siga pendiente de aprobacion.
+- **Pantalla 14 - Gestionar reserva** (`/Reservas/Gestionar/{id}`): consulta itinerario, pasajeros, asientos y estados. Cancela una reserva sin pago y libera sus asientos; para una compra pagada solo registra una solicitud. La version actual no tiene una pantalla ni una accion para aprobar o rechazar solicitudes; DP-08 sigue pendiente de definicion.
 - **Pantalla 15 - Check-in** (`/CheckIn/Index`): registra check-in por codigo de reserva y documento del pasajero, solo para compra pagada y dentro de la ventana parametrizada. Es un registro academico, no emite una tarjeta de embarque.
 - **Pantalla 16 - Comprobantes** (`/Comprobantes/Index`): consulta comprobantes simulados asociados a compras. Son ficticios y no tienen validez tributaria.
 
