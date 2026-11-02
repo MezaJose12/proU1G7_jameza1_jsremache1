@@ -15,11 +15,11 @@
     {
         <div class="alert alert-info" role="status">@Model.Mensaje</div>
     }
-    @if (Model.Vuelos.Count == 0)
+    @if (Model.Vuelos.Count == 0 && Model.Itinerarios.Count == 0)
     {
         <section class="card border-0 shadow-sm"><div class="card-body text-center py-5">
             <div class="display-6 text-primary mb-2" aria-hidden="true">></div>
-            <h2 class="h5">No se encontraron vuelos</h2>
+            <h2 class="h5">No se encontraron vuelos ni itinerarios</h2>
             <p class="text-secondary">No mostramos horarios ficticios. Prueba otra fecha o modifica la ruta.</p>
             @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros }, new { @class = "btn btn-primary" })
         </div></section>
@@ -61,5 +61,39 @@
                 </div>
             }
         </div>
+        if (Model.Itinerarios.Count > 0)
+        {
+            <section class="mt-4" aria-labelledby="itinerarios-title">
+                <h2 id="itinerarios-title" class="h4">Itinerarios completos a Galápagos</h2>
+                <p class="text-secondary">Los dos tramos se reservan juntos; cada pasajero selecciona un asiento distinto en cada vuelo.</p>
+                <div class="row g-3">
+                    @foreach (var itinerario in Model.Itinerarios)
+                    {
+                        <div class="col-12">
+                            <article class="card shadow-sm"><div class="card-body">
+                                <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                    <div><h3 class="h5">@itinerario.Ruta</h3><p class="mb-1">@itinerario.Fecha.ToString("ddd dd/MM/yyyy") · @itinerario.Horario</p><p class="small text-secondary mb-0">
+                                        @foreach (var tramo in itinerario.Tramos)
+                                        {
+                                            <span class="d-block">@tramo.CodigoVuelo · @tramo.Ruta · @tramo.Horario</span>
+                                        }
+                                    </p></div>
+                                    <div class="text-md-end"><div class="fw-bold">@itinerario.TarifaTotal.ToString("N2") @itinerario.Moneda <small class="text-secondary fw-normal">por pasajero, todos los tramos</small></div><div class="small mb-2">@itinerario.AsientosDisponibles asientos disponibles en cada tramo</div>
+                                        @if (Request.IsAuthenticated)
+                                        {
+                                            @Html.RouteLink("Elegir itinerario", "ItinerarySelect", new { id = itinerario.ItinerarioId }, new { @class = "btn btn-primary" })
+                                        }
+                                        else
+                                        {
+                                            @Html.ActionLink("Iniciar sesion para reservar", "Login", "Account", new { ReturnUrl = Url.RouteUrl("ItinerarySelect", new { id = itinerario.ItinerarioId }) }, new { @class = "btn btn-primary" })
+                                        }
+                                    </div>
+                                </div>
+                            </div></article>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
     }
 </main>
