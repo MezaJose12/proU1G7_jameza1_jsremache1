@@ -10,7 +10,7 @@
     }
     else
     {
-        @if (TempData["Aviso"] != null) { <div class="alert alert-info" role="status">@TempData["Aviso"]</div> }
+        if (TempData["Aviso"] != null) { <div class="alert alert-info" role="status">@TempData["Aviso"]</div> }
         <div class="alert alert-info" role="status">Las reservas pendientes se cancelan y liberan sus asientos. En compras pagadas se registra una solicitud: DP-08 sigue pendiente de aprobacion y no se ejecuta reembolso ni liberacion.</div>
         <section class="card shadow-sm mb-4"><div class="card-header bg-white"><h2 class="h5 mb-0">@Model.CodigoReserva</h2></div><div class="card-body">
             <dl class="row"><dt class="col-sm-4">Ruta</dt><dd class="col-sm-8">@Model.Ruta</dd><dt class="col-sm-4">Fecha de viaje</dt><dd class="col-sm-8">@(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("dd/MM/yyyy") : "-")</dd><dt class="col-sm-4">Pasajeros</dt><dd class="col-sm-8">@Model.CantidadPasajeros</dd><dt class="col-sm-4">Estado</dt><dd class="col-sm-8">@Model.EstadoReserva</dd><dt class="col-sm-4">Compra</dt><dd class="col-sm-8">@Model.EstadoCompra</dd></dl>
@@ -24,7 +24,7 @@
             @Html.RouteLink("Ver comprobantes", "Receipts", null, new { @class = "btn btn-outline-primary" })
             @if (Model.PermiteCancelar)
             {
-                using (Html.BeginForm("SolicitarCancelacion", "Interfaces", new { id = Model.ReservaId }, FormMethod.Post, new { onsubmit = "return confirm('¿Deseas continuar con la cancelacion o solicitud?');" }))
+                using (Html.BeginForm("SolicitarCancelacion", "Interfaces", new { id = Model.ReservaId }, FormMethod.Post, new { onsubmit = "return confirm('Deseas continuar con la cancelacion o solicitud?');" }))
                 {
                     @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-outline-danger">Cancelar / solicitar cancelacion</button>

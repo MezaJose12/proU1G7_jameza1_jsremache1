@@ -175,7 +175,7 @@ CREATE TABLE dbo.TipoDocumentoIdentidad (
 );
 
 CREATE TABLE dbo.EstadoReserva (
-    Codigo       VARCHAR(20)   NOT NULL CONSTRAINT PK_EstadoReserva PRIMARY KEY,
+    Codigo       VARCHAR(21)   NOT NULL CONSTRAINT PK_EstadoReserva PRIMARY KEY,
     Descripcion  NVARCHAR(100) NOT NULL
 );
 
@@ -402,7 +402,7 @@ CREATE TABLE dbo.Reserva (
     UsuarioId             NVARCHAR(128) NOT NULL,
     FechaCreacion         DATETIME2(0)  NOT NULL CONSTRAINT DF_Reserva_FechaCreacion DEFAULT (SYSDATETIME()),
     FechaExpiracion       DATETIME2(0)  NULL,     -- periodo de retención (DP-07 pendiente)
-    EstadoReservaCodigo   VARCHAR(20)   NOT NULL CONSTRAINT DF_Reserva_Estado DEFAULT ('PENDIENTE'),
+    EstadoReservaCodigo   VARCHAR(21)   NOT NULL CONSTRAINT DF_Reserva_Estado DEFAULT ('PENDIENTE'),
     CONSTRAINT FK_Reserva_Estado FOREIGN KEY (EstadoReservaCodigo) REFERENCES dbo.EstadoReserva (Codigo),
     CONSTRAINT UQ_Reserva_Codigo UNIQUE (CodigoReserva),
     CONSTRAINT CK_Reserva_UsuarioId  CHECK (LEN(UsuarioId) > 0),
@@ -907,7 +907,7 @@ INSERT INTO dbo.EstadoReserva (Codigo, Descripcion) VALUES
  ('CONFIRMADA', N'Reserva confirmada'),
  ('CANCELADA',  N'Reserva cancelada'),
  ('EXPIRADA',   N'Reserva expirada por tiempo de retención'),
- ('SOLICITUD_CANCELACION', N'Solicitud de cancelación pendiente de aprobación; inventario retenido');
+ ('SOLICITUD_CANCELACION', N'Solicitud de cancelacion pendiente de aprobacion; inventario retenido');
 
 INSERT INTO dbo.EstadoAsignacion (Codigo, Descripcion, OcupaInventario, EstadoVisual) VALUES
  ('PENDIENTE',  N'Asiento reservado, pendiente de pago (morado)', 1, 'RESERVADO'),

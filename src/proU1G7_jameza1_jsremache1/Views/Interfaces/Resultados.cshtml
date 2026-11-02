@@ -9,7 +9,7 @@
             <h1 id="page-title" class="h2 fw-bold">Resultados de vuelos</h1>
             <p class="text-secondary mb-0">@Model.Origen -> @Model.Destino - @(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("dd/MM/yyyy") : "Fecha no seleccionada") - @Model.CantidadPasajeros pasajero(s)</p>
         </div>
-        @Html.ActionLink("Modificar busqueda", "Buscar", "Interfaces", null, new { @class = "btn btn-outline-secondary" })
+        @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros }, new { @class = "btn btn-outline-secondary" })
     </header>
     @if (!string.IsNullOrWhiteSpace(Model.Mensaje))
     {
@@ -21,7 +21,7 @@
             <div class="display-6 text-primary mb-2" aria-hidden="true">></div>
             <h2 class="h5">No se encontraron vuelos</h2>
             <p class="text-secondary">No mostramos horarios ficticios. Prueba otra fecha o modifica la ruta.</p>
-            @Html.ActionLink("Modificar busqueda", "Buscar", "Interfaces", null, new { @class = "btn btn-primary" })
+            @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros }, new { @class = "btn btn-primary" })
         </div></section>
     }
     else
