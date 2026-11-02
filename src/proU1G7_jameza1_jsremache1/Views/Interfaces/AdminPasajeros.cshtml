@@ -1,16 +1,16 @@
 @model proU1G7_jameza1_jsremache1.Models.AdministracionPasajerosViewModel
 @{
-    ViewBag.Title = "Administración de pasajeros";
+    ViewBag.Title = "Administracion de pasajeros";
     var editando = Model.Formulario != null && Model.Formulario.PasajeroId.HasValue;
 }
 <main class="container py-4" aria-labelledby="page-title">
     <header class="d-flex justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 20 - Gestión operativa</p>
-            <h1 id="page-title" class="h2 fw-bold">Administración de pasajeros</h1>
+            <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 20 - Gestion operativa</p>
+            <h1 id="page-title" class="h2 fw-bold">Administracion de pasajeros</h1>
             <p class="text-secondary">Busca por nombre, documento o correo. Los registros no se eliminan para conservar el historial de reservas.</p>
         </div>
-        @Html.RouteLink("Gestión", "AdminManagement", null, new { @class = "btn btn-outline-secondary" })
+        @Html.RouteLink("Gestion", "AdminManagement", null, new { @class = "btn btn-outline-secondary" })
     </header>
 
     @if (!string.IsNullOrWhiteSpace(Model.Aviso))
@@ -51,7 +51,7 @@
                             @Html.ValidationMessageFor(m => m.Formulario.TipoDocumentoCodigo, "", new { @class = "text-danger" })
                         </div>
                         <div class="col-12 col-md-4">
-                            @Html.LabelFor(m => m.Formulario.NumeroDocumento, "Número de documento", new { @class = "form-label" })
+                            @Html.LabelFor(m => m.Formulario.NumeroDocumento, "Numero de documento", new { @class = "form-label" })
                             @Html.TextBoxFor(m => m.Formulario.NumeroDocumento, new { @class = "form-control", maxlength = "20", minlength = "5", autocomplete = "off" })
                             @Html.ValidationMessageFor(m => m.Formulario.NumeroDocumento, "", new { @class = "text-danger" })
                         </div>
@@ -71,12 +71,12 @@
                             @Html.ValidationMessageFor(m => m.Formulario.Apellidos, "", new { @class = "text-danger" })
                         </div>
                         <div class="col-12 col-md-6">
-                            @Html.LabelFor(m => m.Formulario.Correo, "Correo electrónico", new { @class = "form-label" })
+                            @Html.LabelFor(m => m.Formulario.Correo, "Correo electronico", new { @class = "form-label" })
                             @Html.TextBoxFor(m => m.Formulario.Correo, new { @class = "form-control", maxlength = "256", type = "email" })
                             @Html.ValidationMessageFor(m => m.Formulario.Correo, "", new { @class = "text-danger" })
                         </div>
                         <div class="col-12 col-md-6">
-                            @Html.LabelFor(m => m.Formulario.Telefono, "Teléfono", new { @class = "form-label" })
+                            @Html.LabelFor(m => m.Formulario.Telefono, "Telefono", new { @class = "form-label" })
                             @Html.TextBoxFor(m => m.Formulario.Telefono, new { @class = "form-control", maxlength = "20", type = "tel" })
                             @Html.ValidationMessageFor(m => m.Formulario.Telefono, "", new { @class = "text-danger" })
                         </div>
@@ -96,7 +96,7 @@
             <div class="card-header bg-white"><h2 id="resultados-title" class="h5 mb-0">Resultados (@Model.Pasajeros.Count)</h2></div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>Pasajero</th><th>Documento</th><th>Correo</th><th>Reservas</th><th>Acción</th></tr></thead>
+                    <thead><tr><th>Pasajero</th><th>Documento</th><th>Correo</th><th>Reservas</th><th>Accion</th></tr></thead>
                     <tbody>
                         @foreach (var pasajero in Model.Pasajeros)
                         {
