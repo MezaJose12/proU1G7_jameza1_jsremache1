@@ -1005,9 +1005,9 @@ INSERT INTO dbo.MarcaTarjeta (Codigo, Nombre, LongitudNumero, LongitudCodigoSegu
  ('DINERS',     N'Diners Club',      14, 3, '36, 38, 300-305',  '~/Content/img/tarjetas/diners.svg');
 
 INSERT INTO dbo.DatosEmisor (DatosEmisorId, NombreComercial, Identificacion, Direccion, Telefono, Correo, LeyendaComprobante)
-VALUES (1, N'Aerolínea VIP (proyecto académico)', N'PENDIENTE DE DEFINICIÓN (DP-05)', N'PENDIENTE DE DEFINICIÓN',
+VALUES (1, N'Aerolinea VIP - Proyecto academico', N'NO APLICA - EMISOR ACADEMICO', N'Proyecto academico',
         NULL, NULL,
-        N'Comprobante académico de una operación simulada. No constituye factura tributaria ni documento autorizado.');
+        N'Documento de demostracion academica. No constituye factura ni documento tributario autorizado.');
 
 INSERT INTO dbo.ParametroPolitica (Codigo, Valor) VALUES
     ('PreparacionAeronaveMinutos', 30),

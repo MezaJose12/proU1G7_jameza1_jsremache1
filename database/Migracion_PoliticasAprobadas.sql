@@ -33,6 +33,16 @@ IF NOT EXISTS (SELECT 1 FROM dbo.TipoComprobante WHERE Codigo = 'NOTA_CREDITO')
 	VALUES ('NOTA_CREDITO', N'Nota de crédito académica (reembolso simulado; sin validez tributaria)');
 IF NOT EXISTS (SELECT 1 FROM dbo.EstadoComprobante WHERE Codigo = 'EMITIDO')
 	INSERT INTO dbo.EstadoComprobante (Codigo, Descripcion) VALUES ('EMITIDO', N'Comprobante emitido');
+
+-- CAMBIO DP-05: sustituye unicamente el emisor de ejemplo pendiente; conserva datos configurados por el administrador.
+UPDATE dbo.DatosEmisor
+   SET NombreComercial = N'Aerolinea VIP - Proyecto academico',
+	   Identificacion = N'NO APLICA - EMISOR ACADEMICO',
+	   Direccion = N'Proyecto academico',
+	   LeyendaComprobante = N'Documento de demostracion academica. No constituye factura ni documento tributario autorizado.'
+ WHERE DatosEmisorId = 1
+   AND (Identificacion LIKE N'PENDIENTE DE DEFINICI%' OR Direccion LIKE N'PENDIENTE DE DEFINICI%');
+
 IF NOT EXISTS (SELECT 1 FROM dbo.EstadoCompra WHERE Codigo = 'ANULADA')
 	INSERT INTO dbo.EstadoCompra (Codigo, Descripcion) VALUES ('ANULADA', N'Compra anulada');
 IF NOT EXISTS (SELECT 1 FROM dbo.EstadoReserva WHERE Codigo = 'CANCELADA')
