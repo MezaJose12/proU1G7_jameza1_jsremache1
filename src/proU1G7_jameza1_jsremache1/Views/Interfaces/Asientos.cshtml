@@ -7,7 +7,12 @@
     <header class="mb-4">
         <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @(seleccion ? "8" : "7") - @(seleccion ? "Seleccion temporal" : "Consulta publica")</p>
         <h1 id="page-title" class="h2 fw-bold">@(seleccion ? "Selecciona tus asientos" : "Disponibilidad de asientos")</h1>
-        <p class="text-secondary">Vuelo VIP@((Model.VueloId ?? 0).ToString("D5")) - @(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("ddd dd/MM/yyyy") : "")</p>
+        <p class="text-secondary">Vuelo VIP@((Model.VueloId ?? 0).ToString("D5")) - @(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("ddd dd/MM/yyyy") : "")
+            @if (Model.EsItinerario)
+            {
+                <span> · Tramo @Model.OrdenTramo de @Model.TotalTramos</span>
+            }
+        </p>
     </header>
     @if (!string.IsNullOrWhiteSpace(Model.Mensaje)) { <div class="alert alert-info" role="status">@Model.Mensaje</div> }
     @if (Model.Asientos.Count == 0)
@@ -32,7 +37,7 @@
                             <p>Selecciona asientos disponibles para @Model.CantidadPasajeros pasajero(s).</p>
                             <p class="small text-secondary">La seleccion es temporal y no bloquea el inventario.</p>
                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                <button type="submit" class="btn btn-primary">Continuar a pasajeros</button>
+                                <button type="submit" class="btn btn-primary">@(Model.EsItinerario && Model.OrdenTramo.GetValueOrDefault() < Model.TotalTramos ? "Guardar asientos y continuar al siguiente tramo" : "Continuar a pasajeros")</button>
                                 @Html.RouteLink("Regresar a resultados", "FlightResults", null, new { @class = "btn btn-outline-secondary" })
                             </div>
                         </div></div>

@@ -3,23 +3,47 @@
     ViewBag.Title = "Mis comprobantes";
 }
 <main class="container py-4" aria-labelledby="page-title">
-    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 16 - Documentos</p><h1 id="page-title" class="h2 fw-bold">Mis comprobantes</h1><p class="text-secondary">Documentos emitidos para compras asociadas a tu cuenta.</p></header>
+    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 16 - Documentos</p><h1 id="page-title" class="h2 fw-bold">Mis comprobantes</h1><p class="text-secondary">Documentos emitidos para reservas y compras de tu cuenta.</p></header>
     @if (TempData["Aviso"] != null)
     {
         <div class="alert alert-success" role="status">@TempData["Aviso"]</div>
     }
-    <div class="alert alert-warning" role="note">Los comprobantes SIMULADO son ficticios y no tienen validez tributaria.</div>
-    @if (Model.Tramos.Count == 0)
+    <div class="alert alert-warning" role="note">Los documentos son simulados. No tienen validez tributaria ni generan movimientos de dinero reales.</div>
+    @if (Model.Comprobantes.Count == 0 && Model.NotasCredito.Count == 0)
     {
-        <div class="card shadow-sm"><div class="card-body text-center py-5"><h2 class="h5">No hay comprobantes emitidos</h2><p class="text-secondary mb-0">Los comprobantes apareceran cuando exista una compra registrada y emitida.</p></div></div>
+        <div class="card shadow-sm"><div class="card-body text-center py-5"><h2 class="h5">No hay documentos emitidos</h2><p class="text-secondary mb-0">Se mostraran cuando exista una reserva o compra registrada.</p></div></div>
     }
-    else
+    @if (Model.Comprobantes.Count > 0)
     {
-        <div class="table-responsive card shadow-sm"><table class="table table-hover align-middle mb-0"><thead><tr><th>Numero</th><th>Tipo</th><th>Fecha de emision</th><th>Estado</th></tr></thead><tbody>
-            @foreach (var comprobante in Model.Tramos)
+        <div class="alert alert-info" role="note">La confirmacion se emite al reservar. El comprobante de venta se emite tras aprobar el pago. Por eso, una compra pagada puede mostrar ambos documentos.</div>
+        <div class="row g-3 mb-4">
+            @foreach (var comprobante in Model.Comprobantes)
             {
-                <tr><th scope="row">@comprobante.CodigoVuelo</th><td>@comprobante.Ruta</td><td>@comprobante.Fecha.ToString("dd/MM/yyyy HH:mm")</td><td><span class="badge text-bg-light border">@comprobante.Horario</span></td></tr>
+                <div class="col-12">
+                    <article class="card shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between"><strong>@comprobante.NumeroComprobante</strong><span>@(comprobante.TipoComprobanteCodigo == "CONFIRMACION" ? "Confirmacion de reserva" : "Comprobante de venta") - @comprobante.Estado</span></div>
+                        <div class="card-body">
+                            <dl class="row mb-2"><dt class="col-sm-3">Reserva</dt><dd class="col-sm-9">@comprobante.CodigoReserva</dd><dt class="col-sm-3">Emision</dt><dd class="col-sm-9">@comprobante.FechaEmision.ToString("dd/MM/yyyy HH:mm")</dd><dt class="col-sm-3">Total</dt><dd class="col-sm-9">@comprobante.TotalOperacion.ToString("N2") @comprobante.MonedaCodigo</dd><dt class="col-sm-3">Emisor</dt><dd class="col-sm-9">@comprobante.EmisorNombre - Identificacion: @comprobante.EmisorIdentificacion - @comprobante.EmisorDireccion</dd></dl>
+                            <p class="small text-secondary mb-0">@comprobante.LeyendaComprobante</p>
+                        </div>
+                    </article>
+                </div>
             }
-        </tbody></table></div>
+        </div>
+    }
+    @if (Model.NotasCredito.Count > 0)
+    {
+        <section class="card shadow-sm" aria-labelledby="creditos-title">
+            <div class="card-header bg-white"><h2 id="creditos-title" class="h5 mb-0">Notas de credito academicas</h2></div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Nota</th><th>Reserva</th><th>Fecha</th><th>Reembolso simulado</th><th>Leyenda</th></tr></thead>
+                <tbody>
+                    @foreach (var nota in Model.NotasCredito)
+                    {
+                        <tr><th scope="row">@nota.NumeroComprobante</th><td>@nota.CodigoReserva</td><td>@nota.FechaEmision.ToString("dd/MM/yyyy HH:mm")</td><td>@nota.PorcentajeReembolso% - @nota.ImporteReembolsado.ToString("N2") USD</td><td>@nota.Leyenda</td></tr>
+                    }
+                </tbody>
+            </table></div>
+        </section>
     }
 </main>

@@ -17,6 +17,7 @@ namespace proU1G7_jameza1_jsremache1
             routes.MapRoute("FlightSearch", "Vuelos/Buscar", new { controller = "Interfaces", action = "Buscar" });
             routes.MapRoute("FlightResults", "Vuelos/Resultados", new { controller = "Interfaces", action = "Resultados" });
             routes.MapRoute("FlightAvailability", "Vuelos/Disponibilidad/{id}", new { controller = "Interfaces", action = "Disponibilidad" });
+            routes.MapRoute("ItinerarySelect", "Reservas/SeleccionarItinerario/{id}", new { controller = "Interfaces", action = "SeleccionarItinerario" });
             routes.MapRoute("SeatSelection", "Reservas/SeleccionAsiento/{id}", new { controller = "Interfaces", action = "SeleccionarAsiento" });
             routes.MapRoute("ReservaPasajeros", "Reservas/Pasajeros", new { controller = "Interfaces", action = "Pasajeros" });
             routes.MapRoute("ReservaConfirmar", "Reservas/Confirmar", new { controller = "Interfaces", action = "Confirmar" });

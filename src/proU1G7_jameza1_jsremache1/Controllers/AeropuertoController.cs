@@ -82,9 +82,26 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "AeropuertoId,CodigoIATA,Nombre,Localidad,Activo")] Aeropuerto aeropuerto)
         {
+            var actual = db.Aeropuertoes.Find(aeropuerto.AeropuertoId);
+            if (actual == null)
+            {
+                return HttpNotFound();
+            }
+
+            var cambiaDatosHistoricos = !string.Equals(actual.CodigoIATA, aeropuerto.CodigoIATA, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(actual.Nombre, aeropuerto.Nombre, StringComparison.Ordinal) ||
+                !string.Equals(actual.Localidad, aeropuerto.Localidad, StringComparison.Ordinal);
+            var usadoPorVueloCompletado = db.Vueloes.Any(v => v.EstadoVueloCodigo == "COMPLETADO" &&
+                (v.Frecuencia.Ruta.AeropuertoOrigenId == aeropuerto.AeropuertoId ||
+                 v.Frecuencia.Ruta.AeropuertoDestinoId == aeropuerto.AeropuertoId));
+            if (cambiaDatosHistoricos && usadoPorVueloCompletado)
+            {
+                ModelState.AddModelError("", "DP-01: no se pueden cambiar los datos de un aeropuerto asociado a vuelos completados.");
+            }
+
             if (ModelState.IsValid)
             {
-                db.Entry(aeropuerto).State = EntityState.Modified;
+                db.Entry(actual).CurrentValues.SetValues(aeropuerto);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
