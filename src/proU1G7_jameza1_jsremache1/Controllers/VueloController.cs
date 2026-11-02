@@ -54,6 +54,15 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "VueloId,FrecuenciaId,FechaOperacion,AeronaveId,EstadoVueloCodigo")] Vuelo vuelo)
         {
+            if (vuelo.AeronaveId == null && vuelo.EstadoVueloCodigo != "PROGRAMADO")
+            {
+                ModelState.AddModelError("EstadoVueloCodigo", "DP-02: un vuelo sin aeronave debe permanecer PROGRAMADO.");
+            }
+            if (vuelo.AeronaveId.HasValue && !db.Aeronaves.Any(a => a.AeronaveId == vuelo.AeronaveId && a.EstadoAeronaveCodigo == "DISPONIBLE"))
+            {
+                ModelState.AddModelError("AeronaveId", "Seleccione una aeronave disponible.");
+            }
+
             if (ModelState.IsValid)
             {
                 db.Vueloes.Add(vuelo);
@@ -92,9 +101,30 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "VueloId,FrecuenciaId,FechaOperacion,AeronaveId,EstadoVueloCodigo")] Vuelo vuelo)
         {
+            var actual = db.Vueloes.Find(vuelo.VueloId);
+            if (actual == null)
+            {
+                return HttpNotFound();
+            }
+            if (actual.EstadoVueloCodigo == "COMPLETADO" && actual.AeronaveId != vuelo.AeronaveId)
+            {
+                ModelState.AddModelError("AeronaveId", "DP-02: no se puede cambiar la aeronave de un vuelo completado.");
+            }
+            if (vuelo.AeronaveId == null && vuelo.EstadoVueloCodigo != "PROGRAMADO")
+            {
+                ModelState.AddModelError("EstadoVueloCodigo", "DP-02: un vuelo sin aeronave debe permanecer PROGRAMADO.");
+            }
+            if (vuelo.AeronaveId.HasValue && !db.Aeronaves.Any(a => a.AeronaveId == vuelo.AeronaveId && a.EstadoAeronaveCodigo == "DISPONIBLE"))
+            {
+                ModelState.AddModelError("AeronaveId", "Seleccione una aeronave disponible.");
+            }
+
             if (ModelState.IsValid)
             {
-                db.Entry(vuelo).State = EntityState.Modified;
+                actual.FrecuenciaId = vuelo.FrecuenciaId;
+                actual.FechaOperacion = vuelo.FechaOperacion;
+                actual.AeronaveId = vuelo.AeronaveId;
+                actual.EstadoVueloCodigo = vuelo.EstadoVueloCodigo;
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }

@@ -3,7 +3,12 @@
     ViewBag.Title = "Modulo administrativo";
 }
 <main class="container py-4" aria-labelledby="page-title">
-    <header class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @ViewBag.NumeroPantalla - Administracion</p><h1 id="page-title" class="h2 fw-bold">@ViewBag.TitleModulo</h1>
+    <header class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @ViewBag.NumeroPantalla - Administracion</p><h1 id="page-title" class="h2 fw-bold">@ViewBag.TitleModulo</h1></div></header>
+    @if (ViewBag.Aviso != null) { <div class="alert alert-info" role="status">@ViewBag.Aviso</div> }
+    @if (ViewBag.TitleModulo == "Revisiones operativas" && Model.RevisionesOperativas.Count == 0)
+    {
+        <div class="alert alert-success">No hay incidencias operativas pendientes de revisión.</div>
+    }
     @if (Model.AccesosAdministrativos.Count == 0)
     {
         <div class="alert alert-info">No hay accesos configurados para este modulo.</div>
@@ -19,7 +24,6 @@
     }
     @if (Model.UsuariosAdministrativos.Count > 0)
     {
-        if (ViewBag.Aviso != null) { <div class="alert alert-info mt-4" role="status">@ViewBag.Aviso</div> }
         <section class="card shadow-sm mt-4" aria-labelledby="usuarios-title">
             <div class="card-header bg-white"><h2 id="usuarios-title" class="h5 mb-0">Cuentas registradas en Identity</h2></div>
             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
@@ -47,6 +51,32 @@
                                 else
                                 {
                                     <span class="text-secondary">Cuenta protegida</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        </section>
+    }
+    @if (Model.RevisionesOperativas.Count > 0)
+    {
+        <section class="card shadow-sm mt-4" aria-labelledby="revisiones-title">
+            <div class="card-header bg-white"><h2 id="revisiones-title" class="h5 mb-0">Revisiones pendientes por vuelos cancelados</h2></div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Vuelo</th><th>Itinerario</th><th>Reserva</th><th>Motivo</th><th>Fecha</th><th>Accion</th></tr></thead>
+                <tbody>
+                    @foreach (var revision in Model.RevisionesOperativas)
+                    {
+                        <tr>
+                            <td>@revision.VueloId</td><td>@(revision.ReferenciaItinerario ?? "-")</td><td>@(revision.CodigoReserva ?? "Sin reserva vinculada")</td>
+                            <td>@revision.Motivo</td><td>@revision.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @using (Html.BeginForm("ResolverRevisionOperativa", "Interfaces", FormMethod.Post))
+                                {
+                                    @Html.AntiForgeryToken()
+                                    @Html.Hidden("id", revision.RevisionOperativaId)
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Marcar revisada</button>
                                 }
                             </td>
                         </tr>

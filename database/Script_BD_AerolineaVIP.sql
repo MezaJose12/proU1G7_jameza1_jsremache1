@@ -525,6 +525,32 @@ CREATE TABLE dbo.Comprobante (
 );
 CREATE INDEX IX_Comprobante_Compra ON dbo.Comprobante (CompraId);
 
+-- CAMBIO DP-08 aprobado: la nota de crédito conserva el importe simulado sin alterar el pago original.
+CREATE TABLE dbo.NotaCreditoAcademica (
+    NotaCreditoId          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_NotaCreditoAcademica PRIMARY KEY,
+    CompraId               INT           NOT NULL,
+    PagoId                 INT           NOT NULL,
+    ComprobanteId          INT           NOT NULL,
+    ImporteReembolsado     DECIMAL(12,2) NOT NULL,
+    PorcentajeReembolso    TINYINT       NOT NULL,
+    FechaRegistro          DATETIME2(0)  NOT NULL CONSTRAINT DF_NotaCreditoAcademica_Fecha DEFAULT (SYSDATETIME()),
+    CONSTRAINT FK_NotaCredito_Compra FOREIGN KEY (CompraId) REFERENCES dbo.Compra (CompraId),
+    CONSTRAINT FK_NotaCredito_Pago FOREIGN KEY (PagoId) REFERENCES dbo.Pago (PagoId),
+    CONSTRAINT FK_NotaCredito_Comprobante FOREIGN KEY (ComprobanteId) REFERENCES dbo.Comprobante (ComprobanteId),
+    CONSTRAINT UQ_NotaCredito_Compra UNIQUE (CompraId),
+    CONSTRAINT UQ_NotaCredito_Pago UNIQUE (PagoId),
+    CONSTRAINT UQ_NotaCredito_Comprobante UNIQUE (ComprobanteId),
+    CONSTRAINT CK_NotaCredito_Importe CHECK (ImporteReembolsado >= 0),
+    CONSTRAINT CK_NotaCredito_Porcentaje CHECK (PorcentajeReembolso BETWEEN 1 AND 100)
+);
+
+-- Parámetros aprobados de DP-03 y DP-10 que consume la validación transaccional.
+CREATE TABLE dbo.ParametroPolitica (
+    Codigo      VARCHAR(60) NOT NULL CONSTRAINT PK_ParametroPolitica PRIMARY KEY,
+    Valor       INT         NOT NULL,
+    CONSTRAINT CK_ParametroPolitica_Valor CHECK (Valor >= 0)
+);
+
 -- NUEVO. DATOS DEL EMISOR para el encabezado del comprobante (una sola fila).
 CREATE TABLE dbo.DatosEmisor (
     DatosEmisorId        TINYINT       NOT NULL CONSTRAINT PK_DatosEmisor PRIMARY KEY,
@@ -714,6 +740,13 @@ BEGIN
 
     IF EXISTS (SELECT 1
                FROM inserted i
+               JOIN deleted d ON d.VueloId = i.VueloId
+               WHERE d.EstadoVueloCodigo = 'COMPLETADO'
+                 AND ISNULL(d.AeronaveId, -1) <> ISNULL(i.AeronaveId, -1))
+        THROW 50003, N'No se puede cambiar la aeronave de un vuelo completado.', 1;
+
+    IF EXISTS (SELECT 1
+               FROM inserted i
                JOIN dbo.Aeronave a ON a.AeronaveId = i.AeronaveId
                LEFT JOIN deleted d ON d.VueloId = i.VueloId
                WHERE a.EstadoAeronaveCodigo <> 'DISPONIBLE'
@@ -721,17 +754,28 @@ BEGIN
         THROW 50003, N'La aeronave seleccionada no está disponible para nuevas asignaciones.', 1;
 
     -- RNP-02: una aeronave no puede tener vuelos con horarios superpuestos.
-    IF EXISTS (SELECT 1
-               FROM inserted i
-               JOIN dbo.vw_VueloDetalle a ON a.VueloId = i.VueloId
-               JOIN dbo.vw_VueloDetalle b ON b.AeronaveId = a.AeronaveId
-                                         AND b.VueloId   <> a.VueloId
-               WHERE a.AeronaveId IS NOT NULL
-                 AND a.EstadoVueloCodigo <> 'CANCELADO'
-                 AND b.EstadoVueloCodigo <> 'CANCELADO'
-                 AND a.SalidaProgramada < b.LlegadaProgramada
-                 AND b.SalidaProgramada < a.LlegadaProgramada)
-        THROW 50004, N'La aeronave ya tiene asignado otro vuelo en un horario incompatible.', 1;
+    DECLARE @preparacionMinutos INT = (SELECT Valor FROM dbo.ParametroPolitica WHERE Codigo = 'PreparacionAeronaveMinutos');
+    DECLARE @liberacionMinutos INT = (SELECT Valor FROM dbo.ParametroPolitica WHERE Codigo = 'LiberacionAeronaveMinutos');
+    IF @preparacionMinutos IS NULL OR @liberacionMinutos IS NULL
+        THROW 50004, N'Faltan parametros aprobados de preparacion/liberacion de aeronaves.', 1;
+
+    IF EXISTS (SELECT 1 FROM
+               (SELECT vd.VueloId, vd.AeronaveId, vd.AeropuertoOrigenId,
+                       vd.SalidaProgramada, vd.LlegadaProgramada,
+                       LAG(vd.VueloId) OVER (PARTITION BY vd.AeronaveId ORDER BY vd.SalidaProgramada, vd.VueloId) AS VueloAnterior,
+                       LAG(vd.AeropuertoDestinoId) OVER (PARTITION BY vd.AeronaveId ORDER BY vd.SalidaProgramada, vd.VueloId) AS DestinoAnterior,
+                       LAG(vd.LlegadaProgramada) OVER (PARTITION BY vd.AeronaveId ORDER BY vd.SalidaProgramada, vd.VueloId) AS LlegadaAnterior
+                FROM dbo.vw_VueloDetalle vd
+                WHERE vd.AeronaveId IN (SELECT AeronaveId FROM inserted WHERE AeronaveId IS NOT NULL
+                                        UNION SELECT AeronaveId FROM deleted WHERE AeronaveId IS NOT NULL)
+                  AND vd.EstadoVueloCodigo <> 'CANCELADO') v
+               WHERE (v.VueloId IN (SELECT VueloId FROM inserted UNION SELECT VueloId FROM deleted)
+                      OR v.VueloAnterior IN (SELECT VueloId FROM inserted UNION SELECT VueloId FROM deleted))
+                 AND v.DestinoAnterior IS NOT NULL
+                 AND (v.AeropuertoOrigenId <> v.DestinoAnterior
+                      OR DATEADD(MINUTE, -@preparacionMinutos, v.SalidaProgramada) <
+                         DATEADD(MINUTE, @liberacionMinutos, v.LlegadaAnterior)))
+        THROW 50004, N'La aeronave no tiene tiempo suficiente de preparación/desplazamiento o continuidad de aeropuerto.', 1;
 END;
 GO
 
@@ -787,19 +831,24 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @conexionMinutos INT = (SELECT Valor FROM dbo.ParametroPolitica WHERE Codigo = 'ConexionMinimaMinutos');
+    IF @conexionMinutos IS NULL
+        THROW 50021, N'Falta el parametro aprobado de conexion minima.', 1;
+
     IF EXISTS (SELECT 1
                FROM (SELECT vd.AeropuertoDestinoId,
-                            vd.LlegadaProgramada,
-                            LEAD(vd.AeropuertoOrigenId) OVER (PARTITION BY t.ItinerarioId ORDER BY t.Orden) AS SiguienteOrigen,
-                            LEAD(vd.SalidaProgramada)   OVER (PARTITION BY t.ItinerarioId ORDER BY t.Orden) AS SiguienteSalida
-                     FROM dbo.TramoItinerario t
-                     JOIN dbo.vw_VueloDetalle vd ON vd.VueloId = t.VueloId
-                     WHERE t.ItinerarioId IN (SELECT ItinerarioId FROM inserted
-                                              UNION
-                                              SELECT ItinerarioId FROM deleted)) x
-               WHERE x.SiguienteOrigen IS NOT NULL
-                 AND (x.SiguienteOrigen <> x.AeropuertoDestinoId
-                      OR x.SiguienteSalida < x.LlegadaProgramada))
+                             vd.LlegadaProgramada,
+                             LEAD(vd.AeropuertoOrigenId) OVER (PARTITION BY t.ItinerarioId ORDER BY t.Orden) AS SiguienteOrigen,
+                             LEAD(vd.SalidaProgramada)   OVER (PARTITION BY t.ItinerarioId ORDER BY t.Orden) AS SiguienteSalida
+                      FROM dbo.TramoItinerario t
+                      JOIN dbo.vw_VueloDetalle vd ON vd.VueloId = t.VueloId
+                      WHERE t.ItinerarioId IN (SELECT ItinerarioId FROM inserted
+                                               UNION
+                                               SELECT ItinerarioId FROM deleted)) x
+                WHERE x.SiguienteOrigen IS NOT NULL
+                  AND (x.SiguienteOrigen <> x.AeropuertoDestinoId
+                       OR CONVERT(DATE, x.SiguienteSalida) <> CONVERT(DATE, x.LlegadaProgramada)
+                       OR x.SiguienteSalida < DATEADD(MINUTE, @conexionMinutos, x.LlegadaProgramada)))
         THROW 50021, N'Los tramos del itinerario no son continuos.', 1;
 END;
 GO
@@ -960,6 +1009,11 @@ VALUES (1, N'Aerolínea VIP (proyecto académico)', N'PENDIENTE DE DEFINICIÓN (
         NULL, NULL,
         N'Comprobante académico de una operación simulada. No constituye factura tributaria ni documento autorizado.');
 
+INSERT INTO dbo.ParametroPolitica (Codigo, Valor) VALUES
+    ('PreparacionAeronaveMinutos', 30),
+    ('LiberacionAeronaveMinutos', 30),
+    ('ConexionMinimaMinutos', 60);
+
 -- Aeropuertos (Galápagos: supuesto pendiente DP-01)
 INSERT INTO dbo.Aeropuerto (CodigoIATA, Nombre, Localidad) VALUES
  ('UIO', N'Aeropuerto Internacional Mariscal Sucre',          N'Quito'),
@@ -1070,19 +1124,33 @@ BEGIN TRY
     SELECT 'IT-' + CONVERT(CHAR(8), d.FechaOperacion, 112),
            CASE WHEN d.DiaSemana IN (1, 3, 5) THEN N'Quito – Manta – Quito'
                 WHEN d.DiaSemana IN (2, 4, 6) THEN N'Quito – Guayaquil – Quito'
-                ELSE N'Quito – Galápagos – Quito (escala en Guayaquil)' END
+                ELSE N'Itinerario operativo' END
              + N' · ' + CONVERT(NVARCHAR(10), d.FechaOperacion, 103),
            CASE WHEN d.FechaOperacion < '20261101' THEN 'INACTIVO' ELSE 'ACTIVO' END
-      FROM (SELECT DISTINCT FechaOperacion, DiaSemana FROM dbo.vw_VueloDetalle) d;
+      FROM (SELECT DISTINCT FechaOperacion, DiaSemana FROM dbo.vw_VueloDetalle WHERE DiaSemana <> 7) d
+    UNION ALL
+    SELECT 'IT-OUT-' + CONVERT(CHAR(8), d.FechaOperacion, 112),
+           N'Quito – Guayaquil – Galápagos · ' + CONVERT(NVARCHAR(10), d.FechaOperacion, 103),
+           CASE WHEN d.FechaOperacion < '20261101' THEN 'INACTIVO' ELSE 'ACTIVO' END
+      FROM (SELECT DISTINCT FechaOperacion FROM dbo.vw_VueloDetalle WHERE DiaSemana = 7) d
+    UNION ALL
+    SELECT 'IT-RET-' + CONVERT(CHAR(8), d.FechaOperacion, 112),
+           N'Galápagos – Guayaquil – Quito · ' + CONVERT(NVARCHAR(10), d.FechaOperacion, 103),
+           CASE WHEN d.FechaOperacion < '20261101' THEN 'INACTIVO' ELSE 'ACTIVO' END
+      FROM (SELECT DISTINCT FechaOperacion FROM dbo.vw_VueloDetalle WHERE DiaSemana = 7) d;
 
     INSERT INTO dbo.TramoItinerario (ItinerarioId, VueloId, Orden)
     SELECT i.ItinerarioId,
            vd.VueloId,
-           ROW_NUMBER() OVER (PARTITION BY vd.FechaOperacion ORDER BY vd.HoraSalida)
+           ROW_NUMBER() OVER (PARTITION BY i.ItinerarioId ORDER BY vd.HoraSalida)
       FROM dbo.vw_VueloDetalle vd
-      JOIN dbo.Itinerario i ON i.Referencia = 'IT-' + CONVERT(CHAR(8), vd.FechaOperacion, 112)
-     WHERE vd.DiaSemana = 7
-        OR vd.HoraSalida IN ('09:00', '14:00');
+      JOIN dbo.Itinerario i ON i.Referencia = CASE
+          WHEN vd.DiaSemana = 7 AND vd.HoraSalida < '15:00' THEN 'IT-OUT-' + CONVERT(CHAR(8), vd.FechaOperacion, 112)
+          WHEN vd.DiaSemana = 7 THEN 'IT-RET-' + CONVERT(CHAR(8), vd.FechaOperacion, 112)
+          ELSE 'IT-' + CONVERT(CHAR(8), vd.FechaOperacion, 112)
+      END
+     WHERE (vd.DiaSemana = 7 AND vd.HoraSalida IN ('09:00', '11:00', '15:00', '18:00'))
+        OR (vd.DiaSemana <> 7 AND vd.HoraSalida IN ('09:00', '14:00'));
 
     -- ---------- Pasajeros (ficticios) ----------
     INSERT INTO dbo.Pasajero (TipoDocumentoCodigo, NumeroDocumento, Nombres, Apellidos, FechaNacimiento, Correo, Telefono, FechaRegistro)
