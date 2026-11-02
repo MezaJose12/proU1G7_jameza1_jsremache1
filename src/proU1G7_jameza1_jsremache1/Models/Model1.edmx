@@ -135,7 +135,7 @@
           <Key>
             <PropertyRef Name="Codigo" />
           </Key>
-          <Property Name="Codigo" Type="varchar" MaxLength="20" Nullable="false" />
+          <Property Name="Codigo" Type="varchar" MaxLength="21" Nullable="false" />
           <Property Name="Descripcion" Type="nvarchar" MaxLength="100" Nullable="false" />
         </EntityType>
         <EntityType Name="EstadoVuelo">
@@ -241,7 +241,7 @@
           <Property Name="UsuarioId" Type="nvarchar" MaxLength="128" Nullable="false" />
           <Property Name="FechaCreacion" Type="datetime2" Precision="0" Nullable="false" />
           <Property Name="FechaExpiracion" Type="datetime2" Precision="0" />
-          <Property Name="EstadoReservaCodigo" Type="varchar" MaxLength="20" Nullable="false" />
+          <Property Name="EstadoReservaCodigo" Type="varchar" MaxLength="21" Nullable="false" />
         </EntityType>
         <EntityType Name="ReservaPasajeroVuelo">
           <Key>
@@ -970,7 +970,7 @@
           <Key>
             <PropertyRef Name="Codigo" />
           </Key>
-          <Property Name="Codigo" Type="String" MaxLength="20" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Codigo" Type="String" MaxLength="21" FixedLength="false" Unicode="false" Nullable="false" />
           <Property Name="Descripcion" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
           <NavigationProperty Name="Reservas" Relationship="Self.FK_Reserva_Estado" FromRole="EstadoReserva" ToRole="Reserva" />
         </EntityType>
@@ -1093,7 +1093,7 @@
           <Property Name="UsuarioId" Type="String" MaxLength="128" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="FechaCreacion" Type="DateTime" Nullable="false" Precision="0" />
           <Property Name="FechaExpiracion" Type="DateTime" Precision="0" />
-          <Property Name="EstadoReservaCodigo" Type="String" MaxLength="20" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="EstadoReservaCodigo" Type="String" MaxLength="21" FixedLength="false" Unicode="false" Nullable="false" />
           <NavigationProperty Name="Compras" Relationship="Self.FK_Compra_Reserva" FromRole="Reserva" ToRole="Compra" />
           <NavigationProperty Name="EstadoReserva" Relationship="Self.FK_Reserva_Estado" FromRole="Reserva" ToRole="EstadoReserva" />
           <NavigationProperty Name="ReservaPasajeroVueloes" Relationship="Self.FK_RPV_Reserva" FromRole="Reserva" ToRole="ReservaPasajeroVuelo" />
