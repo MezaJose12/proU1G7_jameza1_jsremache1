@@ -23,9 +23,15 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         private readonly AerolineaVIPEntities db = new AerolineaVIPEntities();
 
         [AllowAnonymous]
-        public ActionResult Buscar(string origen = null)
+        public ActionResult Buscar(string origen = null, string destino = null, DateTime? fecha = null, int pasajeros = 1)
         {
-            var model = new InterfacesViewModel { Origen = origen, CantidadPasajeros = 1 };
+            var model = new InterfacesViewModel
+            {
+                Origen = origen,
+                Destino = destino,
+                FechaViaje = fecha,
+                CantidadPasajeros = pasajeros >= 1 && pasajeros <= 7 ? pasajeros : 1
+            };
             CargarAeropuertos(model);
             var aeropuerto = string.IsNullOrWhiteSpace(origen) ? null : BuscarAeropuerto(origen);
             CargarDestinos(model, aeropuerto == null ? (int?)null : aeropuerto.AeropuertoId);
@@ -1713,7 +1719,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var aeropuertos = db.Aeropuertoes
                 .Where(a => aeropuertosActivos.Contains(a.AeropuertoId))
                 .ToDictionary(a => a.AeropuertoId);
-            var nombresDias = new[] { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" };
+            var nombresDias = new[] { "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo" };
 
             foreach (var ruta in datosRutas)
             {

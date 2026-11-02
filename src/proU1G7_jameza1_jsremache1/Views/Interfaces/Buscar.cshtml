@@ -24,7 +24,7 @@
                     </div>
                     <div class="col-12 col-md-6 col-lg-3">
                         <label for="fecha" class="form-label">Fecha de salida <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="fecha" name="fecha" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        <input type="date" class="form-control" id="fecha" name="fecha" value="@(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : string.Empty)" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                     </div>
                     <div class="col-12 col-md-6 col-lg-3">
                         <label for="pasajeros" class="form-label">Pasajeros <span class="text-danger">*</span></label>
@@ -56,7 +56,7 @@
             {
                 <div class="table-responsive">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th scope="col">Ruta activa</th><th scope="col">Dias y horarios (salida–llegada)</th></tr></thead>
+                        <thead><tr><th scope="col">Ruta activa</th><th scope="col">Dias y horarios (salida - llegada)</th></tr></thead>
                         <tbody>
                             @foreach (var ruta in Model.RutasOperacion)
                             {
@@ -74,7 +74,10 @@
     var selectorOrigen = document.getElementById("origen");
     if (selectorOrigen instanceof HTMLSelectElement) {
         selectorOrigen.addEventListener("change", function () {
-            window.location.href = "@Url.RouteUrl("FlightSearch")?origen=" + encodeURIComponent(selectorOrigen.value);
+            window.location.href = "@Url.RouteUrl("FlightSearch")?origen=" + encodeURIComponent(selectorOrigen.value)
+                + "&destino=" + encodeURIComponent(document.getElementById("destino").value)
+                + "&fecha=" + encodeURIComponent(document.getElementById("fecha").value)
+                + "&pasajeros=" + encodeURIComponent(document.getElementById("pasajeros").value);
         });
     }
 </script>
