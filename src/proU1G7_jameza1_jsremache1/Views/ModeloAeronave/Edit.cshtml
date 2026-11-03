@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.ModeloAeronave
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "Editar modelo de aeronave";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Edit</h2>
+<h2>Editar modelo de aeronave</h2>
+<p class="text-secondary">El modelo describe la familia del avion. Si ya tiene aeronaves, su capacidad de asientos no se puede cambiar.</p>
 
 
 @using (Html.BeginForm())
@@ -38,6 +39,7 @@
             @Html.LabelFor(model => model.CapacidadAsientos, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.EditorFor(model => model.CapacidadAsientos, new { htmlAttributes = new { @class = "form-control", required = "required", min = "1", max = "7" } })
+                <small class="form-text text-muted">Cantidad total de posiciones; de 1 a 7. Debe coincidir con la configuracion existente.</small>
                 @Html.ValidationMessageFor(model => model.CapacidadAsientos, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -50,8 +52,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a modelos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

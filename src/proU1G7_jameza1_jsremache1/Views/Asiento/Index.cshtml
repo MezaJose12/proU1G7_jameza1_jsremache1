@@ -1,57 +1,114 @@
-﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.Asiento>
+﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.ModeloAeronave>
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "Mapa de asientos";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
-<h2>Asientos</h2>
-@if (ViewBag.Aviso != null)
-{
-    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
-}
-<p>
-    @Html.ActionLink("Crear asiento", "Create", null, new { @class = "btn btn-primary" })
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.Codigo)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Fila)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Lado)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Ubicacion)
-        </th>
-        <th>Modelo</th>
-        <th></th>
-    </tr>
-
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.Codigo)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Fila)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Lado)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Ubicacion)
-        </td>
-        <td>@item.ModeloAeronave.Fabricante @item.ModeloAeronave.Nombre</td>
-        <td>
-            @Html.ActionLink("Editar", "Edit", new { modeloAeronaveId = item.ModeloAeronaveId, numeroAsiento = item.NumeroAsiento }) |
-            @Html.ActionLink("Detalle", "Details", new { modeloAeronaveId = item.ModeloAeronaveId, numeroAsiento = item.NumeroAsiento }) |
-            @Html.ActionLink("Eliminar", "Delete", new { modeloAeronaveId = item.ModeloAeronaveId, numeroAsiento = item.NumeroAsiento })
-        </td>
-    </tr>
-}
-
-</table>
+<style>
+    .seat-map { max-width: 470px; margin: 0 auto; padding: 1.25rem; border: 2px solid #cbd5e1; border-radius: 48% 48% 1rem 1rem; background: #f8fafc; }
+    .seat-row { display: grid; grid-template-columns: 3.5rem 1fr 1fr; gap: .75rem; align-items: center; margin: .65rem 0; }
+    .seat-position { min-height: 3.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: .35rem; border: 1px solid #cbd5e1; border-radius: .6rem; background: #fff; text-align: center; }
+    .seat-configured { border-color: #198754; background: #eaf6ef; }
+    .seat-empty { border-style: dashed; }
+    .seat-aisle { color: #64748b; font-size: .75rem; text-align: center; }
+    .seat-door { color: #92400e; font-size: .75rem; text-align: center; }
+</style>
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><h1 id="page-title" class="h2">Mapa de asientos por modelo</h1><p class="text-secondary mb-0">Seleccione una posicion vacia para configurarla. La numeracion respeta el esquema 1D, 2D, 2I, 3D, 3I, 4D, 4I; la puerta ocupa el lugar 1I. Este mapa describe la cabina, no la disponibilidad de un vuelo.</p></div>
+        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Volver a modelos", "Index", "ModeloAeronave", null, new { @class = "btn btn-outline-secondary" }) @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })</div>
+    </header>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+    }
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Todavia no hay modelos. Cree primero un modelo de aeronave.</div>
+    }
+    @foreach (var modelo in Model)
+    {
+        <section class="card shadow-sm mb-4" aria-labelledby="modelo-@modelo.ModeloAeronaveId">
+            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div><h2 id="modelo-@modelo.ModeloAeronaveId" class="h5 mb-1">@modelo.Fabricante @modelo.Nombre</h2><span class="text-secondary small">@modelo.Asientoes.Count de @modelo.CapacidadAsientos posiciones configuradas</span></div>
+                @if (!modelo.Aeronaves.Any())
+                {
+                    @Html.ActionLink("Agregar asiento", "Create", new { modeloAeronaveId = modelo.ModeloAeronaveId }, new { @class = "btn btn-sm btn-outline-primary" })
+                }
+                else
+                {
+                    <span class="badge text-bg-secondary">Solo lectura: el modelo ya tiene aeronaves</span>
+                }
+            </div>
+            <div class="card-body">
+                <div class="seat-map" role="group" aria-label="Mapa de asientos para @modelo.Fabricante @modelo.Nombre">
+                    <p class="seat-aisle mb-3">Proa / cabina de mando</p>
+                    @for (var fila = 1; fila <= 4; fila++)
+                    {
+                        <div class="seat-row">
+                            <span class="small text-secondary">Fila @fila</span>
+                            @foreach (var lado in new[] { "D", "I" })
+                            {
+                                if (fila == 1 && lado == "I")
+                                {
+                                    <span class="seat-door">Puerta</span>
+                                }
+                                else
+                                {
+                                    var numero = fila == 1 ? 1 : (fila - 1) * 2 + (lado == "D" ? 0 : 1);
+                                    if (numero <= modelo.CapacidadAsientos)
+                                    {
+                                        var asiento = modelo.Asientoes.FirstOrDefault(a => a.NumeroAsiento == numero);
+                                        if (asiento == null)
+                                        {
+                                            <div class="seat-position seat-empty">
+                                                @if (!modelo.Aeronaves.Any())
+                                                {
+                                                    @Html.ActionLink("+ Agregar " + fila + lado, "Create", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = numero, fila = fila, lado = lado }, new { aria_label = "Configurar asiento " + fila + lado })
+                                                }
+                                                else
+                                                {
+                                                    <span>@fila@lado</span><span class="small text-secondary">Sin configurar</span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="seat-position seat-configured">
+                                                <strong>@asiento.Codigo</strong>
+                                                <span class="small">@asiento.Ubicacion</span>
+                                                @if (!modelo.Aeronaves.Any())
+                                                {
+                                                    @Html.ActionLink("Editar", "Edit", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small" })
+                                                    @Html.ActionLink("Detalle", "Details", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small" })
+                                                    @Html.ActionLink("Eliminar", "Delete", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small text-danger" })
+                                                }
+                                                else
+                                                {
+                                                    @Html.ActionLink("Detalle", "Details", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small" })
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="seat-position text-secondary">-</span>
+                                    }
+                                }
+                            }
+                        </div>
+                    }
+                    <p class="seat-aisle mt-3 mb-0">Pasillo central</p>
+                </div>
+                @if (modelo.Asientoes.Count == modelo.CapacidadAsientos)
+                {
+                    <div class="alert alert-success mt-3 mb-0">Configuracion completa. Este modelo ya puede asignarse a una aeronave.</div>
+                }
+                else
+                {
+                    <p class="small text-secondary mt-3 mb-0">La capacidad del modelo determina cuantas posiciones aparecen. Complete todas antes de registrar aeronaves.</p>
+                }
+            </div>
+        </section>
+    }
+</main>

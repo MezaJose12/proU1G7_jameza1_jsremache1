@@ -5,9 +5,9 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Crear aeronave</h2>
-<p class="text-secondary">Primero cree el modelo y configure todos sus asientos. Solo los modelos completos aparecen en esta lista.</p>
-<p>@Html.ActionLink("Configurar asientos", "Index", "Asiento") | @Html.ActionLink("Administrar modelos", "Index", "ModeloAeronave")</p>
+<h2>Registrar aeronave</h2>
+<p class="text-secondary">Esta pantalla registra un avion real. Antes debe existir su modelo y estar completo el mapa de asientos.</p>
+<p>@Html.ActionLink("Configurar mapa de asientos", "Index", "Asiento", null, new { @class = "btn btn-outline-primary btn-sm" }) @Html.ActionLink("Administrar modelos", "Index", "ModeloAeronave", null, new { @class = "btn btn-outline-secondary btn-sm" })</p>
 
 @using (Html.BeginForm())
 {
@@ -20,13 +20,14 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Matricula, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Matricula, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "15" } })
+                @Html.EditorFor(model => model.Matricula, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "15", placeholder = "Ej.: AV-01", aria_describedby = "matricula-ayuda" } })
+                <small id="matricula-ayuda" class="form-text text-muted">Identificador unico del avion (matricula o codigo interno), hasta 15 caracteres; por ejemplo AV-01. No escriba aqui el fabricante o modelo.</small>
                 @Html.ValidationMessageFor(model => model.Matricula, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.ModeloAeronaveId, "ModeloAeronaveId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.ModeloAeronaveId, "Modelo de aeronave", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.DropDownList("ModeloAeronaveId", null, "Seleccione un modelo con asientos configurados", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.ModeloAeronaveId, "", new { @class = "text-danger" })
@@ -34,7 +35,7 @@
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.EstadoAeronaveCodigo, "EstadoAeronaveCodigo", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.EstadoAeronaveCodigo, "Estado operativo", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.DropDownList("EstadoAeronaveCodigo", null, "Seleccione un estado", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.EstadoAeronaveCodigo, "", new { @class = "text-danger" })
@@ -49,8 +50,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a aeronaves", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

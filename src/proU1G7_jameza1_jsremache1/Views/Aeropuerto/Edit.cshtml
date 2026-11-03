@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Aeropuerto
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "Editar aeropuerto";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Edit</h2>
+<h2>Editar aeropuerto</h2>
+<p class="text-secondary">El codigo IATA es de tres letras (ej.: UIO). Un aeropuerto usado por rutas se desactiva para conservar el historial.</p>
 
 
 @using (Html.BeginForm())
@@ -60,8 +61,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a aeropuertos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

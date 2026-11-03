@@ -1,14 +1,14 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Asiento
 
 @{
-    ViewBag.Title = "Create";
+    ViewBag.Title = "Configurar asiento";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create</h2>
+<h2>Configurar asiento</h2>
+<p class="text-secondary">Numero identifica la posicion (1 a 7); el codigo se forma con fila y lado, por ejemplo 2D. La puerta ocupa el lugar 1I y no es un asiento.</p>
 
-
-@using (Html.BeginForm()) 
+@using (Html.BeginForm())
 {
     @Html.AntiForgeryToken()
     
@@ -72,8 +72,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver al mapa de asientos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

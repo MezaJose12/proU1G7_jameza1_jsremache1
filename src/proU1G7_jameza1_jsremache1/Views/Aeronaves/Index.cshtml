@@ -5,45 +5,34 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Aeronaves</h2>
-@if (ViewBag.Aviso != null)
-{
-    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
-}
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.Matricula)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.EstadoAeronave.Descripcion)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.ModeloAeronave.Fabricante)
-        </th>
-        <th></th>
-    </tr>
-
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.Matricula)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.EstadoAeronave.Descripcion)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.ModeloAeronave.Fabricante)
-        </td>
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.AeronaveId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.AeronaveId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.AeronaveId })
-        </td>
-    </tr>
-}
-
-</table>
+<main class="container py-4">
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><h1 class="h2">Aeronaves registradas</h1><p class="text-secondary mb-0">Cada matricula identifica un avion concreto y se vincula a un modelo con asientos configurados.</p></div>
+        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Registrar aeronave", "Create", null, new { @class = "btn btn-primary" }) @Html.ActionLink("Ver modelos", "Index", "ModeloAeronave", null, new { @class = "btn btn-outline-primary" }) @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })</div>
+    </header>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+    }
+    <div class="card shadow-sm"><div class="table-responsive"><table class="table table-striped table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Matricula / identificador</th><th>Estado operativo</th><th>Modelo</th><th>Capacidad</th><th>Acciones</th></tr></thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="5" class="text-center text-secondary py-4">No hay aeronaves registradas.</td></tr>
+            }
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <th scope="row">@item.Matricula</th><td>@item.EstadoAeronave.Descripcion</td>
+                    <td>@item.ModeloAeronave.Fabricante @item.ModeloAeronave.Nombre</td><td>@item.ModeloAeronave.CapacidadAsientos asientos</td>
+                    <td class="d-flex flex-wrap gap-2">
+                        @Html.ActionLink("Editar", "Edit", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-primary" })
+                        @Html.ActionLink("Detalle", "Details", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-secondary" })
+                        @Html.ActionLink("Eliminar", "Delete", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-danger" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table></div></div>
+</main>

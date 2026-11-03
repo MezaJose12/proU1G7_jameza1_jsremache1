@@ -6,7 +6,10 @@
 }
 
 <main class="container py-4">
-    <h1 class="h2 mb-3">Vuelos programados</h1>
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div><h1 class="h2 mb-1">Vuelos programados</h1><p class="text-secondary mb-0">Cada vuelo es una operacion en una fecha, creada desde una frecuencia semanal o manualmente.</p></div>
+        @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
+    </header>
     @if (ViewBag.Aviso != null)
     {
         <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
@@ -35,7 +38,7 @@
         }
     </div>
     <div class="table-responsive">
-        <table class="table table-striped">
+        <table class="table table-striped table-hover align-middle">
             <thead><tr><th>Fecha</th><th>Ruta</th><th>Salida</th><th>Aeronave</th><th>Estado</th><th>Frecuencia semanal</th><th>Acciones</th></tr></thead>
             <tbody>
                 @if (!Model.Any())

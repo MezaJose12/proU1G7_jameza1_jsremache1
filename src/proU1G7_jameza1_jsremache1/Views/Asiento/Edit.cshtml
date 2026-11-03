@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Asiento
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "Editar posicion de asiento";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Edit</h2>
+<h2>Editar posicion de asiento</h2>
+<p class="text-secondary">El codigo combina fila y lado (ej.: 2D). El numero identifica la posicion del mapa y no se modifica aqui.</p>
 
 
 @using (Html.BeginForm())
@@ -60,8 +61,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver al mapa de asientos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

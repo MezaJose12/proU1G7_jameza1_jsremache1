@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.TramoItinerario
 
 @{
-    ViewBag.Title = "Create";
+    ViewBag.Title = "Agregar tramo al itinerario";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create</h2>
+<h2>Agregar tramo al itinerario</h2>
+<p class="text-secondary">Cada tramo es un vuelo. Use orden 1 para el primer vuelo, 2 para el siguiente, y asi sucesivamente; el aeropuerto de llegada debe coincidir con la siguiente salida.</p>
 
 
 @using (Html.BeginForm()) 
@@ -17,7 +18,7 @@
         <hr />
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
         <div class="form-group">
-            @Html.LabelFor(model => model.ItinerarioId, "ItinerarioId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.ItinerarioId, "Itinerario", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.DropDownList("ItinerarioId", null, htmlAttributes: new { @class = "form-control" })
                 @Html.ValidationMessageFor(model => model.ItinerarioId, "", new { @class = "text-danger" })
@@ -25,7 +26,7 @@
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.VueloId, "VueloId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.VueloId, "Vuelo programado", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.DropDownList("VueloId", null, htmlAttributes: new { @class = "form-control" })
                 @Html.ValidationMessageFor(model => model.VueloId, "", new { @class = "text-danger" })
@@ -33,7 +34,7 @@
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.Orden, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.Orden, "Orden dentro del itinerario", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.EditorFor(model => model.Orden, new { htmlAttributes = new { @class = "form-control" } })
                 @Html.ValidationMessageFor(model => model.Orden, "", new { @class = "text-danger" })
@@ -48,8 +49,10 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a tramos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.ActionLink("Volver a itinerarios", "Index", "Itinerario", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

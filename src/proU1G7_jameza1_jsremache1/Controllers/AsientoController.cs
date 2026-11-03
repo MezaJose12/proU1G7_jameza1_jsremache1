@@ -19,9 +19,13 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // GET: Asiento
         public ActionResult Index()
         {
-            var asientoes = db.Asientoes.Include(a => a.ModeloAeronave);
+            var modelos = db.ModeloAeronaves
+                .Include(m => m.Asientoes)
+                .Include(m => m.Aeronaves)
+                .OrderBy(m => m.Fabricante)
+                .ThenBy(m => m.Nombre);
             ViewBag.Aviso = TempData["Aviso"] as string;
-            return View(asientoes.ToList());
+            return View(modelos.ToList());
         }
 
         // GET: Asiento/Details/5
@@ -40,10 +44,19 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         // GET: Asiento/Create
-        public ActionResult Create(int? modeloAeronaveId)
+        public ActionResult Create(int? modeloAeronaveId, byte? numeroAsiento, byte? fila, string lado)
         {
             PrepararOpcionesModelo(modeloAeronaveId);
-            return View(new Asiento { ModeloAeronaveId = modeloAeronaveId.GetValueOrDefault() });
+            var asiento = new Asiento { ModeloAeronaveId = modeloAeronaveId.GetValueOrDefault() };
+            if (numeroAsiento.HasValue && fila.HasValue && (lado == "D" || lado == "I"))
+            {
+                asiento.NumeroAsiento = numeroAsiento.Value;
+                asiento.Fila = fila.Value;
+                asiento.Lado = lado;
+                asiento.Codigo = fila.Value + lado;
+            }
+
+            return View(asiento);
         }
 
         // POST: Asiento/Create

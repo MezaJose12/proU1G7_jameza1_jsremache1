@@ -1,53 +1,43 @@
 ﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.ModeloAeronave>
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "Modelos de aeronave";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
-<h2>Modelos de aeronave</h2>
-@if (ViewBag.Aviso != null)
-{
-    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
-}
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.Fabricante)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Nombre)
-        </th>
-        <th>Capacidad</th>
-        <th>Asientos configurados</th>
-        <th></th>
-    </tr>
-
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.Fabricante)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Nombre)
-        </td>
-        <td>@item.CapacidadAsientos</td>
-        <td>@item.Asientoes.Count / @item.CapacidadAsientos
-            @if (item.Asientoes.Count != item.CapacidadAsientos)
-            {
-                <span class="text-warning"> - incompleto</span>
-            }
-        </td>
-        <td>
-            @Html.ActionLink("Configurar asientos", "Create", "Asiento", new { modeloAeronaveId = item.ModeloAeronaveId }, null) |
-            @Html.ActionLink("Editar", "Edit", new { id=item.ModeloAeronaveId }) |
-            @Html.ActionLink("Detalle", "Details", new { id=item.ModeloAeronaveId }) |
-            @Html.ActionLink("Eliminar", "Delete", new { id=item.ModeloAeronaveId })
-        </td>
-    </tr>
-}
-
-</table>
+<main class="container py-4" aria-labelledby="page-title">
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><h1 id="page-title" class="h2">Modelos de aeronave</h1><p class="text-secondary mb-0">Un modelo describe fabricante, nombre comercial y capacidad; despues se configura su mapa de asientos.</p></div>
+        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Crear modelo", "Create", null, new { @class = "btn btn-primary" }) @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })</div>
+    </header>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+    }
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Fabricante</th><th>Modelo</th><th>Capacidad</th><th>Configuracion</th><th>Acciones</th></tr></thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-secondary py-4">No hay modelos registrados.</td></tr>
+                    }
+                    @foreach (var item in Model)
+                    {
+                        var completo = item.Asientoes.Count == item.CapacidadAsientos;
+                        <tr>
+                            <th scope="row">@item.Fabricante</th><td>@item.Nombre</td><td>@item.CapacidadAsientos asientos</td>
+                            <td><span class="badge @(completo ? "text-bg-success" : "text-bg-warning")">@item.Asientoes.Count / @item.CapacidadAsientos @(completo ? "completos" : "pendientes")</span></td>
+                            <td class="d-flex flex-wrap gap-2">
+                                @Html.ActionLink("Ver mapa", "Index", "Asiento", null, new { @class = "btn btn-sm btn-outline-primary" })
+                                @Html.ActionLink("Editar", "Edit", new { id = item.ModeloAeronaveId }, new { @class = "btn btn-sm btn-outline-secondary" })
+                                @Html.ActionLink("Detalle", "Details", new { id = item.ModeloAeronaveId }, new { @class = "btn btn-sm btn-outline-secondary" })
+                                @Html.ActionLink("Eliminar", "Delete", new { id = item.ModeloAeronaveId }, new { @class = "btn btn-sm btn-outline-danger" })
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
