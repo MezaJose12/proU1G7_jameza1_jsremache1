@@ -2105,18 +2105,20 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return View("Reportes", model);
             }
 
+            var fechaDesde = desde.HasValue ? desde.Value.Date : (DateTime?)null;
+            var fechaHastaExclusiva = hasta.HasValue ? hasta.Value.Date.AddDays(1) : (DateTime?)null;
+
             var reservas = db.Reservas.AsQueryable();
             var compras = db.Compras.AsQueryable();
-            if (desde.HasValue)
+            if (fechaDesde.HasValue)
             {
-                reservas = reservas.Where(r => r.FechaCreacion >= desde.Value.Date);
-                compras = compras.Where(c => c.FechaCompra >= desde.Value.Date);
+                reservas = reservas.Where(r => r.FechaCreacion >= fechaDesde.Value);
+                compras = compras.Where(c => c.FechaCompra >= fechaDesde.Value);
             }
-            if (hasta.HasValue)
+            if (fechaHastaExclusiva.HasValue)
             {
-                var limiteSuperior = hasta.Value.Date.AddDays(1);
-                reservas = reservas.Where(r => r.FechaCreacion < limiteSuperior);
-                compras = compras.Where(c => c.FechaCompra < limiteSuperior);
+                reservas = reservas.Where(r => r.FechaCreacion < fechaHastaExclusiva.Value);
+                compras = compras.Where(c => c.FechaCompra < fechaHastaExclusiva.Value);
             }
 
             model.ReservasPorEstado = reservas

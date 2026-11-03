@@ -19,19 +19,21 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // CAMBIO: permite consultar vuelos por fechas sin alterar las acciones CRUD scaffolded.
         public ActionResult Index(DateTime? desde, DateTime? hasta)
         {
+            var fechaDesde = desde.HasValue ? desde.Value.Date : (DateTime?)null;
+            var fechaHastaExclusiva = hasta.HasValue ? hasta.Value.Date.AddDays(1) : (DateTime?)null;
+
             IQueryable<Vuelo> vueloes = db.Vueloes
                 .Include(v => v.Aeronave)
                 .Include(v => v.EstadoVuelo)
                 .Include(v => v.Frecuencia.Ruta.Aeropuerto)
                 .Include(v => v.Frecuencia.Ruta.Aeropuerto1);
-            if (desde.HasValue)
+            if (fechaDesde.HasValue)
             {
-                vueloes = vueloes.Where(v => v.FechaOperacion >= desde.Value.Date);
+                vueloes = vueloes.Where(v => v.FechaOperacion >= fechaDesde.Value);
             }
-            if (hasta.HasValue)
+            if (fechaHastaExclusiva.HasValue)
             {
-                var limiteExclusivo = hasta.Value.Date.AddDays(1);
-                vueloes = vueloes.Where(v => v.FechaOperacion < limiteExclusivo);
+                vueloes = vueloes.Where(v => v.FechaOperacion < fechaHastaExclusiva.Value);
             }
 
             ViewBag.Desde = desde.HasValue ? desde.Value.ToString("yyyy-MM-dd") : string.Empty;
