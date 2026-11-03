@@ -1659,8 +1659,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var puedeConsultarTodas = User.IsInRole("Counter");
             var model = new InterfacesViewModel();
             model.Comprobantes = db.Database.SqlQuery<ComprobanteInterfazViewModel>(
-                "SELECT NumeroComprobante, TipoComprobanteCodigo, TipoComprobante, EstadoComprobanteCodigo AS Estado, FechaEmision, CodigoReserva, TotalOperacion, MonedaCodigo, EmisorNombre, EmisorIdentificacion, EmisorDireccion, LeyendaComprobante " +
-                "FROM dbo.vw_ComprobanteDetalle WHERE (UsuarioId = @p0 OR @p1 = 1) ORDER BY FechaEmision DESC",
+                "SELECT ComprobanteId, NumeroComprobante, TipoComprobanteCodigo, TipoComprobante, EstadoComprobanteCodigo AS Estado, FechaEmision, CodigoReserva, TotalOperacion, MonedaCodigo, EmisorNombre, EmisorIdentificacion, EmisorDireccion, LeyendaComprobante, MetodoPago, MarcaTarjeta, TarjetaEnmascarada, CodigoOperacion, EsSimulado " +
+                "FROM dbo.vw_ComprobanteDetalle WHERE TipoComprobanteCodigo = 'FACTURA' AND (UsuarioId = @p0 OR @p1 = 1) ORDER BY FechaEmision DESC",
                 usuarioId, puedeConsultarTodas ? 1 : 0).ToList();
             model.NotasCredito = db.Database.SqlQuery<NotaCreditoInterfazViewModel>(
                 "SELECT c.NumeroComprobante, r.CodigoReserva, c.FechaEmision, n.ImporteReembolsado, " +
@@ -1671,6 +1671,28 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 usuarioId, puedeConsultarTodas ? 1 : 0).ToList();
 
             return View("Comprobantes", model);
+        }
+
+        [Authorize]
+        public ActionResult ImprimirComprobante(int? id)
+        {
+            if (!id.HasValue || id.Value <= 0)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+
+            var usuarioId = User.Identity.GetUserId();
+            var puedeConsultarTodas = User.IsInRole("Counter");
+            var comprobante = db.Database.SqlQuery<ComprobanteInterfazViewModel>(
+                "SELECT ComprobanteId, NumeroComprobante, TipoComprobanteCodigo, TipoComprobante, EstadoComprobanteCodigo AS Estado, FechaEmision, CodigoReserva, TotalOperacion, MonedaCodigo, EmisorNombre, EmisorIdentificacion, EmisorDireccion, LeyendaComprobante, MetodoPago, MarcaTarjeta, TarjetaEnmascarada, CodigoOperacion, EsSimulado " +
+                "FROM dbo.vw_ComprobanteDetalle WHERE ComprobanteId = @p0 AND TipoComprobanteCodigo = 'FACTURA' AND (UsuarioId = @p1 OR @p2 = 1)",
+                id.Value, usuarioId, puedeConsultarTodas ? 1 : 0).FirstOrDefault();
+            if (comprobante == null)
+            {
+                return HttpNotFound();
+            }
+
+            return View("ImprimirComprobante", comprobante);
         }
 
         [Authorize(Roles = "Administrador,SuperUsuario")]

@@ -62,7 +62,7 @@ Las pantallas publicas de busqueda se pueden visitar sin cuenta. Para guardar un
 - **Pantalla 13 - Mis reservas** (`/Reservas/MisReservas`): lista las operaciones del cliente; los roles operativos autorizados pueden consultar reservas para asistir. Las pendientes permiten volver al pago mientras no venzan.
 - **Pantalla 14 - Gestionar reserva** (`/Reservas/Gestionar/{id}`): consulta itinerario, pasajeros, asientos y estados. Una reserva pendiente puede cancelarse y libera sus asientos. Para una compra pagada, DP-08 permite cancelación completa solo si se solicita con al menos 24 horas antes del primer tramo y no existe check-in; se registra una nota de crédito académica por 100 % con más de 48 horas o 50 % entre 24 y 48 horas. No se realizan reembolsos monetarios reales.
 - **Pantalla 15 - Check-in** (`/CheckIn/Index`): registra check-in por codigo de reserva y documento del pasajero, solo para compra pagada y dentro de la ventana parametrizada. Es un registro academico, no emite una tarjeta de embarque.
-- **Pantalla 16 - Comprobantes** (`/Comprobantes/Index`): consulta comprobantes de venta académicos y notas de crédito simuladas asociados a compras. Son ficticios y no tienen validez tributaria; la descarga PDF pendiente de DP-05 aún no está disponible.
+- **Pantalla 16 - Comprobantes** (`/Comprobantes/Index`): muestra un comprobante de venta por compra pagada y las notas de credito por separado. Las confirmaciones de reserva no se listan para evitar duplicar la informacion. Cada comprobante de venta tiene el boton **Ver e imprimir**; desde el navegador se puede imprimir o guardar como PDF. Se muestra el metodo de pago y solo los ultimos cuatro digitos de la tarjeta.
 
 ### Administracion
 

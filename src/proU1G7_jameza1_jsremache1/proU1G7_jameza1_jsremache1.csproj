@@ -478,6 +478,7 @@
     <Content Include="Views\Interfaces\AdminPasajeros.cshtml" />
     <Content Include="Views\Interfaces\AdminModulo.cshtml" />
     <Content Include="Views\Interfaces\Reportes.cshtml" />
+    <Content Include="Views\Interfaces\ImprimirComprobante.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
