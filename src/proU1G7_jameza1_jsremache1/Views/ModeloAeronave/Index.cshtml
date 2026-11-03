@@ -5,8 +5,11 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
-
+<h2>Modelos de aeronave</h2>
+@if (ViewBag.Aviso != null)
+{
+    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+}
 <p>
     @Html.ActionLink("Create New", "Create")
 </p>
@@ -18,9 +21,8 @@
         <th>
             @Html.DisplayNameFor(model => model.Nombre)
         </th>
-        <th>
-            @Html.DisplayNameFor(model => model.CapacidadAsientos)
-        </th>
+        <th>Capacidad</th>
+        <th>Asientos configurados</th>
         <th></th>
     </tr>
 
@@ -32,13 +34,18 @@
         <td>
             @Html.DisplayFor(modelItem => item.Nombre)
         </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.CapacidadAsientos)
+        <td>@item.CapacidadAsientos</td>
+        <td>@item.Asientoes.Count / @item.CapacidadAsientos
+            @if (item.Asientoes.Count != item.CapacidadAsientos)
+            {
+                <span class="text-warning"> - incompleto</span>
+            }
         </td>
         <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.ModeloAeronaveId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.ModeloAeronaveId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.ModeloAeronaveId })
+            @Html.ActionLink("Configurar asientos", "Create", "Asiento", new { modeloAeronaveId = item.ModeloAeronaveId }, null) |
+            @Html.ActionLink("Editar", "Edit", new { id=item.ModeloAeronaveId }) |
+            @Html.ActionLink("Detalle", "Details", new { id=item.ModeloAeronaveId }) |
+            @Html.ActionLink("Eliminar", "Delete", new { id=item.ModeloAeronaveId })
         </td>
     </tr>
 }

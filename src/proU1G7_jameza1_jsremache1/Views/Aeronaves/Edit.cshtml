@@ -21,7 +21,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Matricula, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Matricula, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Matricula, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "15" } })
                 @Html.ValidationMessageFor(model => model.Matricula, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -29,7 +29,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.ModeloAeronaveId, "ModeloAeronaveId", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("ModeloAeronaveId", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("ModeloAeronaveId", null, "Seleccione un modelo con asientos configurados", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.ModeloAeronaveId, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -37,7 +37,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.EstadoAeronaveCodigo, "EstadoAeronaveCodigo", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("EstadoAeronaveCodigo", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("EstadoAeronaveCodigo", null, "Seleccione un estado", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.EstadoAeronaveCodigo, "", new { @class = "text-danger" })
             </div>
         </div>

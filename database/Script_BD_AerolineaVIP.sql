@@ -714,6 +714,69 @@ GO
    A7. TRIGGERS DE REGLAS DE NEGOCIO (validación en el servidor)
 ===================================================================================== */
 
+-- CAMBIO: toda aeronave debe usar un modelo con su capacidad de asientos completa.
+CREATE TRIGGER dbo.trg_Aeronave_ValidarMapaAsientos
+ON dbo.Aeronave
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM inserted i
+        JOIN dbo.ModeloAeronave m ON m.ModeloAeronaveId = i.ModeloAeronaveId
+        WHERE (SELECT COUNT(*) FROM dbo.Asiento s WHERE s.ModeloAeronaveId = m.ModeloAeronaveId) <> m.CapacidadAsientos
+           OR EXISTS (SELECT 1 FROM dbo.Asiento s
+                      WHERE s.ModeloAeronaveId = m.ModeloAeronaveId
+                        AND s.NumeroAsiento > m.CapacidadAsientos)
+    )
+        THROW 50006, N'No se puede registrar la aeronave: el mapa de asientos del modelo esta incompleto.', 1;
+END;
+GO
+
+-- CAMBIO: no permite cambiar el mapa de un modelo que ya tiene aeronaves.
+CREATE TRIGGER dbo.trg_Asiento_ProtegerMapaAeronave
+ON dbo.Asiento
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM
+        (
+            SELECT ModeloAeronaveId FROM inserted
+            UNION
+            SELECT ModeloAeronaveId FROM deleted
+        ) modelos
+        JOIN dbo.Aeronave a ON a.ModeloAeronaveId = modelos.ModeloAeronaveId
+    )
+        THROW 50007, N'No se puede modificar el mapa de asientos de un modelo asignado a aeronaves.', 1;
+END;
+GO
+
+-- CAMBIO: evita que la capacidad del modelo quede distinta de su mapa de asientos.
+CREATE TRIGGER dbo.trg_ModeloAeronave_ValidarCapacidad
+ON dbo.ModeloAeronave
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF UPDATE(CapacidadAsientos) AND EXISTS
+    (
+        SELECT 1
+        FROM inserted i
+        WHERE EXISTS (SELECT 1 FROM dbo.Asiento s WHERE s.ModeloAeronaveId = i.ModeloAeronaveId)
+          AND ((SELECT COUNT(*) FROM dbo.Asiento s WHERE s.ModeloAeronaveId = i.ModeloAeronaveId) <> i.CapacidadAsientos
+               OR EXISTS (SELECT 1 FROM dbo.Asiento s
+                          WHERE s.ModeloAeronaveId = i.ModeloAeronaveId AND s.NumeroAsiento > i.CapacidadAsientos))
+    )
+        THROW 50008, N'La capacidad del modelo debe coincidir con la cantidad de asientos configurados.', 1;
+END;
+GO
+
 -- VUELO: día de operación, frecuencia activa, aeronave disponible y sin conflicto horario.
 CREATE TRIGGER dbo.trg_Vuelo_Validar
 ON dbo.Vuelo
@@ -922,6 +985,7 @@ BEGIN
     JOIN   dbo.Frecuencia f
            ON f.DiaSemana = (DATEDIFF(DAY, CAST('19000101' AS DATE), fe.Fecha) % 7) + 1
           AND f.Activa = 1
+    JOIN   dbo.Ruta r ON r.RutaId = f.RutaId AND r.Activa = 1
     WHERE  NOT EXISTS (SELECT 1 FROM dbo.Vuelo v
                        WHERE v.FrecuenciaId = f.FrecuenciaId
                          AND v.FechaOperacion = fe.Fecha)

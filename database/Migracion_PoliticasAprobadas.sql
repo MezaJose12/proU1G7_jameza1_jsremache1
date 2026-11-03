@@ -25,6 +25,41 @@ IF NOT EXISTS (SELECT 1 FROM dbo.ParametroPolitica WHERE Codigo = 'ConexionMinim
 	INSERT INTO dbo.ParametroPolitica (Codigo, Valor) VALUES ('ConexionMinimaMinutos', 60);
 GO
 
+-- CAMBIO DP-02: genera ocurrencias semanales de frecuencias activas sin asignar aeronaves.
+CREATE OR ALTER PROCEDURE dbo.usp_GenerarVuelos
+	@FechaInicio DATE,
+	@FechaFin DATE
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	IF @FechaInicio IS NULL OR @FechaFin IS NULL OR @FechaFin < @FechaInicio
+		THROW 50051, N'Rango de fechas invalido.', 1;
+	IF DATEDIFF(DAY, @FechaInicio, @FechaFin) > 365
+		THROW 50052, N'El rango no puede superar 366 dias.', 1;
+
+	;WITH Fechas AS
+	(
+		SELECT @FechaInicio AS Fecha
+		UNION ALL
+		SELECT DATEADD(DAY, 1, Fecha) FROM Fechas WHERE Fecha < @FechaFin
+	)
+	INSERT INTO dbo.Vuelo (FrecuenciaId, FechaOperacion)
+	SELECT f.FrecuenciaId, fe.Fecha
+	FROM Fechas fe
+	JOIN dbo.Frecuencia f
+		ON f.DiaSemana = (DATEDIFF(DAY, CAST('19000101' AS DATE), fe.Fecha) % 7) + 1
+		AND f.Activa = 1
+	JOIN dbo.Ruta r ON r.RutaId = f.RutaId AND r.Activa = 1
+	WHERE NOT EXISTS
+	(
+		SELECT 1 FROM dbo.Vuelo v
+		WHERE v.FrecuenciaId = f.FrecuenciaId AND v.FechaOperacion = fe.Fecha
+	)
+	OPTION (MAXRECURSION 400);
+END;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM dbo.TipoComprobante WHERE Codigo = 'FACTURA')
 	INSERT INTO dbo.TipoComprobante (Codigo, Descripcion)
 	VALUES ('FACTURA', N'Comprobante de venta académico (sin validez tributaria)');
@@ -130,6 +165,72 @@ BEGIN
 					  OR DATEADD(MINUTE, -@preparacionMinutos, v.SalidaProgramada) <
 						 DATEADD(MINUTE, @liberacionMinutos, v.LlegadaAnterior)))
 		THROW 50004, N'La aeronave no tiene tiempo suficiente de preparacion/desplazamiento o continuidad de aeropuerto.', 1;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.trg_Aeronave_ValidarMapaAsientos', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_Aeronave_ValidarMapaAsientos;
+GO
+CREATE TRIGGER dbo.trg_Aeronave_ValidarMapaAsientos
+ON dbo.Aeronave
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	SET NOCOUNT ON;
+	IF EXISTS
+	(
+		SELECT 1
+		FROM inserted i
+		JOIN dbo.ModeloAeronave m ON m.ModeloAeronaveId = i.ModeloAeronaveId
+		WHERE (SELECT COUNT(*) FROM dbo.Asiento s WHERE s.ModeloAeronaveId = m.ModeloAeronaveId) <> m.CapacidadAsientos
+		   OR EXISTS (SELECT 1 FROM dbo.Asiento s
+					  WHERE s.ModeloAeronaveId = m.ModeloAeronaveId
+						AND s.NumeroAsiento > m.CapacidadAsientos)
+	)
+		THROW 50006, N'No se puede registrar la aeronave: el mapa de asientos del modelo esta incompleto.', 1;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.trg_Asiento_ProtegerMapaAeronave', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_Asiento_ProtegerMapaAeronave;
+GO
+CREATE TRIGGER dbo.trg_Asiento_ProtegerMapaAeronave
+ON dbo.Asiento
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+	SET NOCOUNT ON;
+	IF EXISTS
+	(
+		SELECT 1
+		FROM
+		(
+			SELECT ModeloAeronaveId FROM inserted
+			UNION
+			SELECT ModeloAeronaveId FROM deleted
+		) modelos
+		JOIN dbo.Aeronave a ON a.ModeloAeronaveId = modelos.ModeloAeronaveId
+	)
+		THROW 50007, N'No se puede modificar el mapa de asientos de un modelo asignado a aeronaves.', 1;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.trg_ModeloAeronave_ValidarCapacidad', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ModeloAeronave_ValidarCapacidad;
+GO
+CREATE TRIGGER dbo.trg_ModeloAeronave_ValidarCapacidad
+ON dbo.ModeloAeronave
+AFTER UPDATE
+AS
+BEGIN
+	SET NOCOUNT ON;
+	IF UPDATE(CapacidadAsientos) AND EXISTS
+	(
+		SELECT 1
+		FROM inserted i
+		WHERE EXISTS (SELECT 1 FROM dbo.Asiento s WHERE s.ModeloAeronaveId = i.ModeloAeronaveId)
+		  AND ((SELECT COUNT(*) FROM dbo.Asiento s WHERE s.ModeloAeronaveId = i.ModeloAeronaveId) <> i.CapacidadAsientos
+			   OR EXISTS (SELECT 1 FROM dbo.Asiento s
+						  WHERE s.ModeloAeronaveId = i.ModeloAeronaveId AND s.NumeroAsiento > i.CapacidadAsientos))
+	)
+		THROW 50008, N'La capacidad del modelo debe coincidir con la cantidad de asientos configurados.', 1;
 END;
 GO
 

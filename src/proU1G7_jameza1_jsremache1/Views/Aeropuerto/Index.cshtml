@@ -5,8 +5,11 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
-
+<h2>Aeropuertos</h2>
+@if (ViewBag.Aviso != null)
+{
+    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+}
 <p>
     @Html.ActionLink("Create New", "Create")
 </p>

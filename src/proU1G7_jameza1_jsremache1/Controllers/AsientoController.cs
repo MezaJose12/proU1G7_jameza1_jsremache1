@@ -20,17 +20,18 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult Index()
         {
             var asientoes = db.Asientoes.Include(a => a.ModeloAeronave);
+            ViewBag.Aviso = TempData["Aviso"] as string;
             return View(asientoes.ToList());
         }
 
         // GET: Asiento/Details/5
-        public ActionResult Details(int? id)
+        public ActionResult Details(int? modeloAeronaveId, byte? numeroAsiento)
         {
-            if (id == null)
+            if (!modeloAeronaveId.HasValue || !numeroAsiento.HasValue)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Asiento asiento = db.Asientoes.Find(id);
+            Asiento asiento = db.Asientoes.Find(modeloAeronaveId.Value, numeroAsiento.Value);
             if (asiento == null)
             {
                 return HttpNotFound();
@@ -39,10 +40,10 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         // GET: Asiento/Create
-        public ActionResult Create()
+        public ActionResult Create(int? modeloAeronaveId)
         {
-            ViewBag.ModeloAeronaveId = new SelectList(db.ModeloAeronaves, "ModeloAeronaveId", "Fabricante");
-            return View();
+            PrepararOpcionesModelo(modeloAeronaveId);
+            return View(new Asiento { ModeloAeronaveId = modeloAeronaveId.GetValueOrDefault() });
         }
 
         // POST: Asiento/Create
@@ -52,25 +53,34 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "ModeloAeronaveId,NumeroAsiento,Codigo,Fila,Lado,Ubicacion")] Asiento asiento)
         {
+            NormalizarAsiento(asiento);
+            ValidarAsiento(asiento, null);
             if (ModelState.IsValid)
             {
                 db.Asientoes.Add(asiento);
                 db.SaveChanges();
-                return RedirectToAction("Index");
+                var modelo = db.ModeloAeronaves.Find(asiento.ModeloAeronaveId);
+                var totalAsientos = db.Asientoes.Count(a => a.ModeloAeronaveId == asiento.ModeloAeronaveId);
+                if (totalAsientos == modelo.CapacidadAsientos)
+                {
+                    TempData["Aviso"] = "La distribucion quedo completa. Ya puede registrar una aeronave de este modelo.";
+                    return RedirectToAction("Index");
+                }
+                return RedirectToAction("Create", new { modeloAeronaveId = asiento.ModeloAeronaveId });
             }
 
-            ViewBag.ModeloAeronaveId = new SelectList(db.ModeloAeronaves, "ModeloAeronaveId", "Fabricante", asiento.ModeloAeronaveId);
+            PrepararOpcionesModelo(asiento.ModeloAeronaveId);
             return View(asiento);
         }
 
         // GET: Asiento/Edit/5
-        public ActionResult Edit(int? id)
+        public ActionResult Edit(int? modeloAeronaveId, byte? numeroAsiento)
         {
-            if (id == null)
+            if (!modeloAeronaveId.HasValue || !numeroAsiento.HasValue)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Asiento asiento = db.Asientoes.Find(id);
+            Asiento asiento = db.Asientoes.Find(modeloAeronaveId.Value, numeroAsiento.Value);
             if (asiento == null)
             {
                 return HttpNotFound();
@@ -86,9 +96,19 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "ModeloAeronaveId,NumeroAsiento,Codigo,Fila,Lado,Ubicacion")] Asiento asiento)
         {
+            var actual = db.Asientoes.Find(asiento.ModeloAeronaveId, asiento.NumeroAsiento);
+            if (actual == null)
+            {
+                return HttpNotFound();
+            }
+            NormalizarAsiento(asiento);
+            ValidarAsiento(asiento, asiento.NumeroAsiento);
             if (ModelState.IsValid)
             {
-                db.Entry(asiento).State = EntityState.Modified;
+                actual.Codigo = asiento.Codigo.Trim();
+                actual.Fila = asiento.Fila;
+                actual.Lado = asiento.Lado.Trim().ToUpperInvariant();
+                actual.Ubicacion = asiento.Ubicacion.Trim();
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
@@ -97,13 +117,13 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         // GET: Asiento/Delete/5
-        public ActionResult Delete(int? id)
+        public ActionResult Delete(int? modeloAeronaveId, byte? numeroAsiento)
         {
-            if (id == null)
+            if (!modeloAeronaveId.HasValue || !numeroAsiento.HasValue)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Asiento asiento = db.Asientoes.Find(id);
+            Asiento asiento = db.Asientoes.Find(modeloAeronaveId.Value, numeroAsiento.Value);
             if (asiento == null)
             {
                 return HttpNotFound();
@@ -114,12 +134,83 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // POST: Asiento/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult DeleteConfirmed(int id)
+        public ActionResult DeleteConfirmed(int modeloAeronaveId, byte numeroAsiento)
         {
-            Asiento asiento = db.Asientoes.Find(id);
+            Asiento asiento = db.Asientoes.Find(modeloAeronaveId, numeroAsiento);
+            if (asiento == null)
+            {
+                return HttpNotFound();
+            }
+            if (db.Aeronaves.Any(a => a.ModeloAeronaveId == modeloAeronaveId))
+            {
+                TempData["Aviso"] = "No se puede modificar el mapa de asientos de un modelo ya asignado a aeronaves.";
+                return RedirectToAction("Index");
+            }
             db.Asientoes.Remove(asiento);
             db.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+        private void PrepararOpcionesModelo(int? seleccionado = null)
+        {
+            var modelos = db.ModeloAeronaves.Include(m => m.Asientoes)
+                .OrderBy(m => m.Fabricante).ThenBy(m => m.Nombre).ToList()
+                .Select(m => new
+                {
+                    m.ModeloAeronaveId,
+                    Nombre = m.Fabricante + " " + m.Nombre + " (" + m.Asientoes.Count + "/" +
+                        m.CapacidadAsientos + " asientos)"
+                }).ToList();
+            ViewBag.ModeloAeronaveId = new SelectList(modelos, "ModeloAeronaveId", "Nombre", seleccionado);
+        }
+
+        private static void NormalizarAsiento(Asiento asiento)
+        {
+            asiento.Codigo = asiento.Codigo == null ? null : asiento.Codigo.Trim().ToUpperInvariant();
+            asiento.Lado = asiento.Lado == null ? null : asiento.Lado.Trim().ToUpperInvariant();
+            asiento.Ubicacion = asiento.Ubicacion == null ? null : asiento.Ubicacion.Trim();
+        }
+
+        private void ValidarAsiento(Asiento asiento, byte? numeroOriginal)
+        {
+            var modelo = db.ModeloAeronaves.Find(asiento.ModeloAeronaveId);
+            if (modelo == null)
+            {
+                ModelState.AddModelError("ModeloAeronaveId", "Seleccione un modelo existente.");
+                return;
+            }
+            if (db.Aeronaves.Any(a => a.ModeloAeronaveId == modelo.ModeloAeronaveId))
+            {
+                ModelState.AddModelError("ModeloAeronaveId", "No se puede modificar el mapa de asientos de un modelo ya asignado a aeronaves.");
+            }
+            if (asiento.NumeroAsiento < 1 || asiento.NumeroAsiento > modelo.CapacidadAsientos)
+            {
+                ModelState.AddModelError("NumeroAsiento", "El numero de asiento debe estar dentro de la capacidad del modelo.");
+            }
+            if (asiento.Fila < 1 || asiento.Fila > 4)
+            {
+                ModelState.AddModelError("Fila", "La fila debe estar entre 1 y 4.");
+            }
+            if (!string.Equals(asiento.Lado, "D", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(asiento.Lado, "I", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("Lado", "El lado debe ser D o I.");
+            }
+            if (string.IsNullOrWhiteSpace(asiento.Codigo) || asiento.Codigo.Trim().Length != 2)
+            {
+                ModelState.AddModelError("Codigo", "El codigo de asiento es obligatorio y debe tener dos caracteres.");
+            }
+            if (string.IsNullOrWhiteSpace(asiento.Ubicacion) || asiento.Ubicacion.Trim().Length > 100)
+            {
+                ModelState.AddModelError("Ubicacion", "La ubicacion es obligatoria y no debe superar 100 caracteres.");
+            }
+            if (db.Asientoes.Any(a => a.ModeloAeronaveId == asiento.ModeloAeronaveId &&
+                (a.NumeroAsiento == asiento.NumeroAsiento || a.Codigo == asiento.Codigo ||
+                 (a.Fila == asiento.Fila && a.Lado == asiento.Lado)) &&
+                (!numeroOriginal.HasValue || a.NumeroAsiento != numeroOriginal.Value)))
+            {
+                ModelState.AddModelError("Codigo", "El numero, codigo o posicion del asiento ya esta registrado para este modelo.");
+            }
         }
 
         protected override void Dispose(bool disposing)

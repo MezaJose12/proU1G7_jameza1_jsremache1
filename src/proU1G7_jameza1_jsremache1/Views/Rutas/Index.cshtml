@@ -1,14 +1,17 @@
 ﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.Ruta>
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "Rutas";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
-
+<h2>Rutas</h2>
+@if (ViewBag.Aviso != null)
+{
+    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+}
 <p>
-    @Html.ActionLink("Create New", "Create")
+    @Html.ActionLink("Crear ruta", "Create", null, new { @class = "btn btn-primary" })
 </p>
 <table class="table">
     <tr>
@@ -42,9 +45,9 @@
             @Html.DisplayFor(modelItem => item.Aeropuerto1.CodigoIATA)
         </td>
         <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.RutaId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.RutaId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.RutaId })
+            @Html.ActionLink("Editar", "Edit", new { id=item.RutaId }) |
+            @Html.ActionLink("Detalle", "Details", new { id=item.RutaId }) |
+            @Html.ActionLink("Desactivar o eliminar", "Delete", new { id=item.RutaId })
         </td>
     </tr>
 }

@@ -1,52 +1,81 @@
 ﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.Vuelo>
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "Vuelos programados";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
+<main class="container py-4">
+    <h1 class="h2 mb-3">Vuelos programados</h1>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+    }
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5">Generar vuelos desde las frecuencias semanales</h2>
+            <p class="text-secondary">Crea una ocurrencia por cada frecuencia activa en las fechas que coincidan con su dia de operacion. Las aeronaves quedan sin asignar hasta que Administracion valide la programacion.</p>
+            @using (Html.BeginForm("Generar", "Vuelo", FormMethod.Post, new { @class = "row g-3 align-items-end" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="col-sm-4"><label for="desde" class="form-label">Desde</label><input id="desde" name="desde" type="date" class="form-control" required value="@ViewBag.DesdeGenerar" /></div>
+                <div class="col-sm-4"><label for="hasta" class="form-label">Hasta</label><input id="hasta" name="hasta" type="date" class="form-control" required value="@ViewBag.HastaGenerar" /></div>
+                <div class="col-sm-4"><button type="submit" class="btn btn-primary">Generar vuelos semanales</button></div>
+            }
+        </div>
+    </section>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        @Html.ActionLink("Crear vuelo individual", "Create", null, new { @class = "btn btn-outline-primary" })
+        @using (Html.BeginForm("Index", "Vuelo", FormMethod.Get, new { @class = "d-flex flex-wrap gap-2 align-items-end" }))
+        {
+            <div><label for="filtroDesde" class="form-label mb-1">Filtrar desde</label><input id="filtroDesde" name="desde" type="date" class="form-control" value="@(ViewBag.Desde ?? "")" /></div>
+            <div><label for="filtroHasta" class="form-label mb-1">hasta</label><input id="filtroHasta" name="hasta" type="date" class="form-control" value="@(ViewBag.Hasta ?? "")" /></div>
+            <button type="submit" class="btn btn-outline-secondary">Filtrar</button>
+            @Html.ActionLink("Quitar filtro", "Index", null, new { @class = "btn btn-link" })
+        }
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Fecha</th><th>Ruta</th><th>Salida</th><th>Aeronave</th><th>Estado</th><th>Frecuencia semanal</th><th>Acciones</th></tr></thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-secondary">No hay vuelos para los filtros seleccionados. Genere vuelos desde una frecuencia activa o cambie el rango.</td></tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.FechaOperacion.ToString("dd/MM/yyyy")</td>
+                        <td>@item.Frecuencia.Ruta.Aeropuerto.CodigoIATA - @item.Frecuencia.Ruta.Aeropuerto1.CodigoIATA</td>
+                        <td>@item.Frecuencia.HoraSalida.ToString(@"hh\:mm")</td>
+                        <td>@(item.Aeronave == null ? "Sin asignar" : item.Aeronave.Matricula)</td>
+                        <td>@item.EstadoVuelo.Descripcion</td>
+                        <td>@("F" + item.FrecuenciaId) - @NombreDia(item.Frecuencia.DiaSemana)</td>
+                        <td>
+                            @Html.ActionLink("Editar", "Edit", new { id = item.VueloId }) |
+                            @Html.ActionLink("Detalle", "Details", new { id = item.VueloId }) |
+                            @Html.ActionLink("Eliminar", "Delete", new { id = item.VueloId })
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</main>
 
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.FechaOperacion)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Aeronave.Matricula)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.EstadoVuelo.Descripcion)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Frecuencia.FrecuenciaId)
-        </th>
-        <th></th>
-    </tr>
-
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.FechaOperacion)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Aeronave.Matricula)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.EstadoVuelo.Descripcion)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Frecuencia.FrecuenciaId)
-        </td>
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.VueloId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.VueloId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.VueloId })
-        </td>
-    </tr>
+@functions {
+    private static string NombreDia(byte dia)
+    {
+        switch (dia)
+        {
+            case 1: return "Lunes";
+            case 2: return "Martes";
+            case 3: return "Miercoles";
+            case 4: return "Jueves";
+            case 5: return "Viernes";
+            case 6: return "Sabado";
+            case 7: return "Domingo";
+            default: return "Dia";
+        }
+    }
 }
-
-</table>

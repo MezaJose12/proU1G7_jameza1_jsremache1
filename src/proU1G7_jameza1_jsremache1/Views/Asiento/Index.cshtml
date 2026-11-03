@@ -5,10 +5,13 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
-
+<h2>Asientos</h2>
+@if (ViewBag.Aviso != null)
+{
+    <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+}
 <p>
-    @Html.ActionLink("Create New", "Create")
+    @Html.ActionLink("Crear asiento", "Create", null, new { @class = "btn btn-primary" })
 </p>
 <table class="table">
     <tr>
@@ -24,9 +27,7 @@
         <th>
             @Html.DisplayNameFor(model => model.Ubicacion)
         </th>
-        <th>
-            @Html.DisplayNameFor(model => model.ModeloAeronave.Fabricante)
-        </th>
+        <th>Modelo</th>
         <th></th>
     </tr>
 
@@ -44,13 +45,11 @@
         <td>
             @Html.DisplayFor(modelItem => item.Ubicacion)
         </td>
+        <td>@item.ModeloAeronave.Fabricante @item.ModeloAeronave.Nombre</td>
         <td>
-            @Html.DisplayFor(modelItem => item.ModeloAeronave.Fabricante)
-        </td>
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { /* id=item.PrimaryKey */ }) |
-            @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ }) |
-            @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
+            @Html.ActionLink("Editar", "Edit", new { modeloAeronaveId = item.ModeloAeronaveId, numeroAsiento = item.NumeroAsiento }) |
+            @Html.ActionLink("Detalle", "Details", new { modeloAeronaveId = item.ModeloAeronaveId, numeroAsiento = item.NumeroAsiento }) |
+            @Html.ActionLink("Eliminar", "Delete", new { modeloAeronaveId = item.ModeloAeronaveId, numeroAsiento = item.NumeroAsiento })
         </td>
     </tr>
 }
