@@ -56,6 +56,8 @@
 
     @using (Html.BeginForm()) {
         @Html.AntiForgeryToken()
+        @Html.Hidden("modeloAeronaveId", Model.ModeloAeronaveId)
+        @Html.Hidden("numeroAsiento", Model.NumeroAsiento)
 
         <div class="form-actions no-color">
             <input type="submit" value="Delete" class="btn btn-default" /> |

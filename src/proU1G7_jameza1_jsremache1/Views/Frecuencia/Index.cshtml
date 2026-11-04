@@ -1,20 +1,22 @@
 ﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.Frecuencia>
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "Frecuencias semanales";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
-
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
+<main class="container py-4">
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><h1 class="h2">Frecuencias semanales</h1><p class="text-secondary mb-0">Plantillas recurrentes por dia y hora; para crear vuelos con fecha use la generacion desde vuelos programados.</p></div>
+        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Crear frecuencia", "Create", null, new { @class = "btn btn-primary" }) @Html.ActionLink("Ver vuelos programados", "Index", "Vuelo", null, new { @class = "btn btn-outline-primary" }) @Html.RouteLink("Volver al modulo", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })</div>
+    </header>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+    }
+    <div class="table-responsive"><table class="table table-striped table-hover align-middle">
     <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.DiaSemana)
-        </th>
+        <th>Dia de operacion</th>
         <th>
             @Html.DisplayNameFor(model => model.HoraSalida)
         </th>
@@ -24,17 +26,13 @@
         <th>
             @Html.DisplayNameFor(model => model.Activa)
         </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Ruta.RutaId)
-        </th>
+        <th>Ruta</th>
         <th></th>
     </tr>
 
 @foreach (var item in Model) {
     <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.DiaSemana)
-        </td>
+        <td>@NombreDia(item.DiaSemana)</td>
         <td>
             @Html.DisplayFor(modelItem => item.HoraSalida)
         </td>
@@ -44,15 +42,31 @@
         <td>
             @Html.DisplayFor(modelItem => item.Activa)
         </td>
+        <td>@item.Ruta.Aeropuerto.CodigoIATA - @item.Ruta.Aeropuerto1.CodigoIATA (@item.Ruta.TarifaReferencial.ToString("0.00") USD)</td>
         <td>
-            @Html.DisplayFor(modelItem => item.Ruta.RutaId)
-        </td>
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.FrecuenciaId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.FrecuenciaId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.FrecuenciaId })
+            @Html.ActionLink("Editar", "Edit", new { id=item.FrecuenciaId }) |
+            @Html.ActionLink("Detalle", "Details", new { id=item.FrecuenciaId }) |
+            @Html.ActionLink("Eliminar", "Delete", new { id=item.FrecuenciaId })
         </td>
     </tr>
 }
 
-</table>
+</table></div>
+</main>
+
+@functions {
+    private static string NombreDia(byte dia)
+    {
+        switch (dia)
+        {
+            case 1: return "Lunes";
+            case 2: return "Martes";
+            case 3: return "Miercoles";
+            case 4: return "Jueves";
+            case 5: return "Viernes";
+            case 6: return "Sabado";
+            case 7: return "Domingo";
+            default: return "Dia";
+        }
+    }
+}

@@ -19,6 +19,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // GET: Aeropuerto
         public ActionResult Index()
         {
+            ViewBag.Aviso = TempData["Aviso"] as string;
             return View(db.Aeropuertoes.ToList());
         }
 
@@ -40,7 +41,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // GET: Aeropuerto/Create
         public ActionResult Create()
         {
-            return View();
+            return View(new Aeropuerto { Activo = true });
         }
 
         // POST: Aeropuerto/Create
@@ -50,8 +51,10 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "AeropuertoId,CodigoIATA,Nombre,Localidad,Activo")] Aeropuerto aeropuerto)
         {
+            ValidarAeropuerto(aeropuerto);
             if (ModelState.IsValid)
             {
+                NormalizarAeropuerto(aeropuerto);
                 db.Aeropuertoes.Add(aeropuerto);
                 db.SaveChanges();
                 return RedirectToAction("Index");
@@ -99,9 +102,14 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 ModelState.AddModelError("", "DP-01: no se pueden cambiar los datos de un aeropuerto asociado a vuelos completados.");
             }
 
+            ValidarAeropuerto(aeropuerto);
             if (ModelState.IsValid)
             {
-                db.Entry(actual).CurrentValues.SetValues(aeropuerto);
+                NormalizarAeropuerto(aeropuerto);
+                actual.CodigoIATA = aeropuerto.CodigoIATA;
+                actual.Nombre = aeropuerto.Nombre;
+                actual.Localidad = aeropuerto.Localidad;
+                actual.Activo = aeropuerto.Activo;
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
@@ -129,9 +137,51 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult DeleteConfirmed(int id)
         {
             Aeropuerto aeropuerto = db.Aeropuertoes.Find(id);
-            db.Aeropuertoes.Remove(aeropuerto);
+            if (aeropuerto == null)
+            {
+                return HttpNotFound();
+            }
+            if (db.Rutas.Any(r => r.AeropuertoOrigenId == id || r.AeropuertoDestinoId == id))
+            {
+                aeropuerto.Activo = false;
+                TempData["Aviso"] = "El aeropuerto se desactivo porque esta asociado a rutas; su historial se conserva.";
+            }
+            else
+            {
+                db.Aeropuertoes.Remove(aeropuerto);
+            }
             db.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+        private void ValidarAeropuerto(Aeropuerto aeropuerto)
+        {
+            var codigo = aeropuerto.CodigoIATA == null ? string.Empty : aeropuerto.CodigoIATA.Trim().ToUpperInvariant();
+            var nombre = aeropuerto.Nombre == null ? string.Empty : aeropuerto.Nombre.Trim();
+            var localidad = aeropuerto.Localidad == null ? string.Empty : aeropuerto.Localidad.Trim();
+            if (codigo.Length != 3 || codigo.Any(c => c < 'A' || c > 'Z'))
+            {
+                ModelState.AddModelError("CodigoIATA", "El codigo IATA debe tener tres letras mayusculas.");
+            }
+            else if (db.Aeropuertoes.Any(a => a.CodigoIATA == codigo && a.AeropuertoId != aeropuerto.AeropuertoId))
+            {
+                ModelState.AddModelError("CodigoIATA", "Ya existe un aeropuerto con ese codigo IATA.");
+            }
+            if (string.IsNullOrWhiteSpace(nombre) || nombre.Length > 150)
+            {
+                ModelState.AddModelError("Nombre", "El nombre es obligatorio y no debe superar 150 caracteres.");
+            }
+            if (string.IsNullOrWhiteSpace(localidad) || localidad.Length > 100)
+            {
+                ModelState.AddModelError("Localidad", "La localidad es obligatoria y no debe superar 100 caracteres.");
+            }
+        }
+
+        private static void NormalizarAeropuerto(Aeropuerto aeropuerto)
+        {
+            aeropuerto.CodigoIATA = aeropuerto.CodigoIATA.Trim().ToUpperInvariant();
+            aeropuerto.Nombre = aeropuerto.Nombre.Trim();
+            aeropuerto.Localidad = aeropuerto.Localidad.Trim();
         }
 
         protected override void Dispose(bool disposing)

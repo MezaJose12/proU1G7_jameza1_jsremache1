@@ -1,0 +1,96 @@
+@model proU1G7_jameza1_jsremache1.Models.ComprobanteInterfazViewModel
+@{
+    Layout = null;
+    ViewBag.Title = "Comprobante academico";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@Model.NumeroComprobante - Comprobante academico</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 28px; color: #17345c; background: #f3f6fb; font-family: Arial, Helvetica, sans-serif; }
+        .toolbar { max-width: 860px; margin: 0 auto 16px; text-align: right; }
+        .toolbar button { padding: 10px 18px; border: 0; border-radius: 4px; background: #174a80; color: #fff; font-size: 15px; cursor: pointer; }
+        .receipt { max-width: 860px; min-height: 640px; margin: 0 auto; padding: 26px 34px 20px; border: 1px solid #b9c9dc; background: #fff; }
+        .brand { text-align: center; }
+        .plane { width: 42px; height: 42px; margin: 0 auto 8px; fill: #174a80; }
+        h1 { margin: 0; font-size: 21px; line-height: 1.35; text-transform: uppercase; }
+        .subtitle { margin: 7px 0 0; color: #456b9c; font-size: 15px; }
+        .rule { margin: 24px -22px 18px; border: 0; border-top: 1px solid #cbd7e5; }
+        .section-title { margin: 22px 0 12px; color: #17345c; font-size: 15px; text-transform: uppercase; }
+        .details { display: grid; grid-template-columns: 190px 1fr; gap: 10px 16px; font-size: 14px; line-height: 1.45; }
+        .label { font-weight: 700; }
+        .value { color: #456b9c; overflow-wrap: anywhere; }
+        .total { margin-top: 20px; padding: 16px; border: 1px solid #cbd7e5; background: #f7f9fc; text-align: right; }
+        .total span { display: block; color: #456b9c; font-size: 13px; }
+        .total strong { display: block; margin-top: 5px; color: #17345c; font-size: 24px; }
+        .notice { margin: 22px 0 0; padding: 12px 0; border-top: 1px solid #cbd7e5; color: #505f73; font-size: 12px; line-height: 1.5; }
+        .footer { margin-top: 20px; padding-top: 12px; border-top: 1px solid #cbd7e5; color: #456b9c; font-size: 12px; text-align: center; }
+        @@media print {
+            body { padding: 0; background: #fff; }
+            .toolbar { display: none; }
+            .receipt { width: 100%; max-width: none; min-height: 0; border: 1px solid #9aacc2; }
+            @@page { size: A4; margin: 14mm; }
+        }
+        @@media (max-width: 600px) {
+            body { padding: 10px; }
+            .receipt { padding: 20px 16px; }
+            .details { grid-template-columns: 1fr; gap: 3px; }
+            .value { margin-bottom: 8px; }
+            .rule { margin-right: 0; margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar"><button type="button" onclick="window.print()">Imprimir o guardar como PDF</button></div>
+    <main class="receipt">
+        <header class="brand">
+            <svg class="plane" viewBox="0 0 64 64" role="img" aria-label="Aerolinea VIP">
+                <path d="M59 29 36 24 25 6c-1-2-4-1-4 1l5 16-14-3-6-8c-1-1-3 0-3 1l2 10-4 5c-1 1 0 3 2 3l4-1 5 7c1 1 3 1 3-1l-2-9 14 3-8 15c-1 2 1 4 3 2l16-14 21-1c4 0 4-4 0-4z" />
+            </svg>
+            <h1>@(Model.TipoComprobanteCodigo == "CONFIRMACION" ? "Confirmacion de reserva" : "Comprobante de venta academico")</h1>
+            <p class="subtitle">Aerolinea VIP - Proyecto academico</p>
+        </header>
+        <hr class="rule" />
+        <h2 class="section-title">Datos del documento</h2>
+        <section class="details">
+            <div class="label">Numero:</div><div class="value">@Model.NumeroComprobante</div>
+            <div class="label">Estado:</div><div class="value">@Model.Estado</div>
+            <div class="label">Fecha de emision:</div><div class="value">@Model.FechaEmision.ToString("dd/MM/yyyy HH:mm")</div>
+            <div class="label">Codigo de reserva:</div><div class="value">@Model.CodigoReserva</div>
+        </section>
+        <h2 class="section-title">Datos del emisor</h2>
+        <section class="details">
+            <div class="label">Nombre:</div><div class="value">@Model.EmisorNombre</div>
+            <div class="label">Identificacion:</div><div class="value">@Model.EmisorIdentificacion</div>
+            <div class="label">Direccion:</div><div class="value">@Model.EmisorDireccion</div>
+        </section>
+        <h2 class="section-title">Datos de pago</h2>
+        <section class="details">
+            <div class="label">Metodo de pago:</div><div class="value">@(string.IsNullOrWhiteSpace(Model.MetodoPago) ? "No aplica - pendiente de pago" : Model.MetodoPago)</div>
+            @if (!string.IsNullOrWhiteSpace(Model.MarcaTarjeta))
+            {
+                <div class="label">Marca:</div><div class="value">@Model.MarcaTarjeta</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.TarjetaEnmascarada))
+            {
+                <div class="label">Tarjeta:</div><div class="value">@Model.TarjetaEnmascarada</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.CodigoOperacion))
+            {
+                <div class="label">Operacion:</div><div class="value">@Model.CodigoOperacion</div>
+            }
+            @if (Model.EsSimulado.HasValue)
+            {
+                <div class="label">Tipo de pago:</div><div class="value">@(Model.EsSimulado.Value ? "Pago simulado" : "Pago no simulado")</div>
+            }
+        </section>
+        <div class="total"><span>Total de la operacion</span><strong>@Model.TotalOperacion.ToString("N2") @Model.MonedaCodigo</strong></div>
+        <p class="notice">@Model.LeyendaComprobante</p>
+        <footer class="footer">Documento academico de demostracion. No tiene validez tributaria ni comercial.</footer>
+    </main>
+</body>
+</html>

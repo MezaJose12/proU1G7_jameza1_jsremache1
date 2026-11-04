@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Frecuencia
 
 @{
-    ViewBag.Title = "Create";
+    ViewBag.Title = "Crear frecuencia";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create</h2>
+<h2>Crear frecuencia semanal</h2>
+<p class="text-secondary">La frecuencia es una plantilla recurrente (ruta, dia y horas), no un vuelo con fecha. Despues genere los vuelos desde el listado de vuelos.</p>
 
 
 @using (Html.BeginForm()) 
@@ -17,33 +18,35 @@
         <hr />
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
         <div class="form-group">
-            @Html.LabelFor(model => model.RutaId, "RutaId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.RutaId, "Ruta", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("RutaId", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("RutaId", null, "Seleccione una ruta", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.RutaId, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.DiaSemana, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.DiaSemana, "Dia de operacion", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.DiaSemana, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.DropDownListFor(model => model.DiaSemana, (System.Collections.Generic.IEnumerable<System.Web.Mvc.SelectListItem>)ViewBag.DiaSemana, "Seleccione un dia", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.DiaSemana, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.HoraSalida, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.HoraSalida, "Hora de salida (hora local)", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.HoraSalida, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.HoraSalida, new { htmlAttributes = new { @class = "form-control", required = "required" } })
+                <small class="form-text text-muted">Formato de 24 horas HH:mm; por ejemplo 09:30.</small>
                 @Html.ValidationMessageFor(model => model.HoraSalida, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.HoraLlegada, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.HoraLlegada, "Hora de llegada (hora local)", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.HoraLlegada, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.HoraLlegada, new { htmlAttributes = new { @class = "form-control", required = "required" } })
+                <small class="form-text text-muted">Formato de 24 horas HH:mm; por ejemplo 11:10.</small>
                 @Html.ValidationMessageFor(model => model.HoraLlegada, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -60,14 +63,15 @@
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Create" class="btn btn-default" />
+                <input type="submit" value="Crear frecuencia" class="btn btn-primary" />
             </div>
         </div>
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a frecuencias", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

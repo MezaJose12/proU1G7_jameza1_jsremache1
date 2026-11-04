@@ -19,7 +19,12 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // GET: TramoItinerarios
         public ActionResult Index()
         {
-            var tramoItinerarios = db.TramoItinerarios.Include(t => t.Itinerario).Include(t => t.Vuelo);
+            var tramoItinerarios = db.TramoItinerarios
+                .Include(t => t.Itinerario)
+                .Include(t => t.Vuelo.Frecuencia.Ruta.Aeropuerto)
+                .Include(t => t.Vuelo.Frecuencia.Ruta.Aeropuerto1)
+                .OrderBy(t => t.ItinerarioId)
+                .ThenBy(t => t.Orden);
             return View(tramoItinerarios.ToList());
         }
 
@@ -39,11 +44,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         // GET: TramoItinerarios/Create
-        public ActionResult Create()
+        public ActionResult Create(int? itinerarioId)
         {
-            ViewBag.ItinerarioId = new SelectList(db.Itinerarios, "ItinerarioId", "Referencia");
-            ViewBag.VueloId = new SelectList(db.Vueloes, "VueloId", "EstadoVueloCodigo");
-            return View();
+            ViewBag.ItinerarioId = CrearOpcionesItinerario(itinerarioId);
+            ViewBag.VueloId = CrearOpcionesVuelo();
+            return View(new TramoItinerario { ItinerarioId = itinerarioId.GetValueOrDefault() });
         }
 
         // POST: TramoItinerarios/Create
@@ -60,8 +65,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return RedirectToAction("Index");
             }
 
-            ViewBag.ItinerarioId = new SelectList(db.Itinerarios, "ItinerarioId", "Referencia", tramoItinerario.ItinerarioId);
-            ViewBag.VueloId = new SelectList(db.Vueloes, "VueloId", "EstadoVueloCodigo", tramoItinerario.VueloId);
+            ViewBag.ItinerarioId = CrearOpcionesItinerario(tramoItinerario.ItinerarioId);
+            ViewBag.VueloId = CrearOpcionesVuelo(tramoItinerario.VueloId);
             return View(tramoItinerario);
         }
 
@@ -77,8 +82,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             {
                 return HttpNotFound();
             }
-            ViewBag.ItinerarioId = new SelectList(db.Itinerarios, "ItinerarioId", "Referencia", tramoItinerario.ItinerarioId);
-            ViewBag.VueloId = new SelectList(db.Vueloes, "VueloId", "EstadoVueloCodigo", tramoItinerario.VueloId);
+            ViewBag.ItinerarioId = CrearOpcionesItinerario(tramoItinerario.ItinerarioId);
+            ViewBag.VueloId = CrearOpcionesVuelo(tramoItinerario.VueloId);
             return View(tramoItinerario);
         }
 
@@ -95,8 +100,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-            ViewBag.ItinerarioId = new SelectList(db.Itinerarios, "ItinerarioId", "Referencia", tramoItinerario.ItinerarioId);
-            ViewBag.VueloId = new SelectList(db.Vueloes, "VueloId", "EstadoVueloCodigo", tramoItinerario.VueloId);
+            ViewBag.ItinerarioId = CrearOpcionesItinerario(tramoItinerario.ItinerarioId);
+            ViewBag.VueloId = CrearOpcionesVuelo(tramoItinerario.VueloId);
             return View(tramoItinerario);
         }
 
@@ -124,6 +129,35 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             db.TramoItinerarios.Remove(tramoItinerario);
             db.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+        private SelectList CrearOpcionesItinerario(int? seleccionado = null)
+        {
+            var itinerarios = db.Itinerarios
+                .OrderBy(i => i.Referencia)
+                .ToList()
+                .Select(i => new { i.ItinerarioId, Descripcion = i.Referencia + " - " + i.Nombre })
+                .ToList();
+            return new SelectList(itinerarios, "ItinerarioId", "Descripcion", seleccionado);
+        }
+
+        private SelectList CrearOpcionesVuelo(int? seleccionado = null)
+        {
+            var vuelos = db.Vueloes
+                .Include(v => v.Frecuencia.Ruta.Aeropuerto)
+                .Include(v => v.Frecuencia.Ruta.Aeropuerto1)
+                .OrderBy(v => v.FechaOperacion)
+                .ToList()
+                .Select(v => new
+                {
+                    v.VueloId,
+                    Descripcion = "Vuelo " + v.VueloId + " | " +
+                        v.Frecuencia.Ruta.Aeropuerto.CodigoIATA + " -> " + v.Frecuencia.Ruta.Aeropuerto1.CodigoIATA +
+                        " | " + v.FechaOperacion.ToString("dd/MM/yyyy") + " " +
+                        v.Frecuencia.HoraSalida.ToString(@"hh\:mm") + "-" + v.Frecuencia.HoraLlegada.ToString(@"hh\:mm")
+                })
+                .ToList();
+            return new SelectList(vuelos, "VueloId", "Descripcion", seleccionado);
         }
 
         protected override void Dispose(bool disposing)

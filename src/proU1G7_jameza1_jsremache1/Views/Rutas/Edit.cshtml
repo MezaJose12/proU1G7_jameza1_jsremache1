@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Ruta
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "Editar ruta";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Edit</h2>
+<h2>Editar ruta</h2>
+<p class="text-secondary">La ruta une aeropuertos y define la tarifa por pasajero y tramo. Si ya tiene vuelos, no se pueden cambiar sus extremos para preservar el historial.</p>
 
 
 @using (Html.BeginForm())
@@ -19,25 +20,25 @@
         @Html.HiddenFor(model => model.RutaId)
 
         <div class="form-group">
-            @Html.LabelFor(model => model.AeropuertoOrigenId, "AeropuertoOrigenId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.AeropuertoOrigenId, "Aeropuerto de origen", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("AeropuertoOrigenId", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("AeropuertoOrigenId", null, "Seleccione aeropuerto de origen", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.AeropuertoOrigenId, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.AeropuertoDestinoId, "AeropuertoDestinoId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.AeropuertoDestinoId, "Aeropuerto de destino", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("AeropuertoDestinoId", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("AeropuertoDestinoId", null, "Seleccione aeropuerto de destino", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.AeropuertoDestinoId, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.TarifaReferencial, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.TarifaReferencial, "Tarifa referencial (USD)", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.TarifaReferencial, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.TarifaReferencial, new { htmlAttributes = new { @class = "form-control", required = "required", min = "0", step = "0.01" } })
                 @Html.ValidationMessageFor(model => model.TarifaReferencial, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -60,8 +61,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a rutas", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

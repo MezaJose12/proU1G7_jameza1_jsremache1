@@ -1,16 +1,20 @@
 ﻿@model IEnumerable<proU1G7_jameza1_jsremache1.Models.Ruta>
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "Rutas";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
-
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
+<main class="container py-4">
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><h1 class="h2">Rutas</h1><p class="text-secondary mb-0">Cada ruta une dos aeropuertos y tiene una tarifa referencial en USD. Cree sus frecuencias despues.</p></div>
+        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Crear ruta", "Create", null, new { @class = "btn btn-primary" }) @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })</div>
+    </header>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-info" role="status">@ViewBag.Aviso</div>
+    }
+    <div class="table-responsive"><table class="table table-striped table-hover align-middle">
     <tr>
         <th>
             @Html.DisplayNameFor(model => model.TarifaReferencial)
@@ -42,11 +46,12 @@
             @Html.DisplayFor(modelItem => item.Aeropuerto1.CodigoIATA)
         </td>
         <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.RutaId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.RutaId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.RutaId })
+            @Html.ActionLink("Editar", "Edit", new { id=item.RutaId }) |
+            @Html.ActionLink("Detalle", "Details", new { id=item.RutaId }) |
+            @Html.ActionLink("Desactivar o eliminar", "Delete", new { id=item.RutaId })
         </td>
     </tr>
 }
 
-</table>
+</table></div>
+</main>

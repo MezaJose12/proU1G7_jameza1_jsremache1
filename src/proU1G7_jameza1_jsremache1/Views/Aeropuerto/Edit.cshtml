@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Aeropuerto
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "Editar aeropuerto";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Edit</h2>
+<h2>Editar aeropuerto</h2>
+<p class="text-secondary">El codigo IATA es de tres letras (ej.: UIO). Un aeropuerto usado por rutas se desactiva para conservar el historial.</p>
 
 
 @using (Html.BeginForm())
@@ -21,7 +22,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.CodigoIATA, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.CodigoIATA, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.CodigoIATA, new { htmlAttributes = new { @class = "form-control", required = "required", minlength = "3", maxlength = "3" } })
                 @Html.ValidationMessageFor(model => model.CodigoIATA, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -29,7 +30,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Nombre, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Nombre, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Nombre, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "150" } })
                 @Html.ValidationMessageFor(model => model.Nombre, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -37,7 +38,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Localidad, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Localidad, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Localidad, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "100" } })
                 @Html.ValidationMessageFor(model => model.Localidad, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -60,8 +61,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a aeropuertos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

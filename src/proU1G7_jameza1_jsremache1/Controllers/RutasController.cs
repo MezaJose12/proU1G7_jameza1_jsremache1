@@ -20,6 +20,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult Index()
         {
             var rutas = db.Rutas.Include(r => r.Aeropuerto).Include(r => r.Aeropuerto1);
+            ViewBag.Aviso = TempData["Aviso"] as string;
             return View(rutas.ToList());
         }
 
@@ -43,7 +44,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         {
             ViewBag.AeropuertoDestinoId = new SelectList(db.Aeropuertoes, "AeropuertoId", "CodigoIATA");
             ViewBag.AeropuertoOrigenId = new SelectList(db.Aeropuertoes, "AeropuertoId", "CodigoIATA");
-            return View();
+            return View(new Ruta { Activa = true });
         }
 
         // POST: Rutas/Create
@@ -53,6 +54,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "RutaId,AeropuertoOrigenId,AeropuertoDestinoId,TarifaReferencial,Activa")] Ruta ruta)
         {
+            ValidarRuta(ruta);
             if (ModelState.IsValid)
             {
                 db.Rutas.Add(ruta);
@@ -89,9 +91,33 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "RutaId,AeropuertoOrigenId,AeropuertoDestinoId,TarifaReferencial,Activa")] Ruta ruta)
         {
+            var actual = db.Rutas.Find(ruta.RutaId);
+            if (actual == null)
+            {
+                return HttpNotFound();
+            }
+            var tieneVuelos = db.Vueloes.Any(v => v.Frecuencia.RutaId == actual.RutaId);
+            if (tieneVuelos && (actual.AeropuertoOrigenId != ruta.AeropuertoOrigenId || actual.AeropuertoDestinoId != ruta.AeropuertoDestinoId))
+            {
+                ModelState.AddModelError("", "La ruta ya tiene vuelos. No se pueden cambiar sus aeropuertos; desactive la ruta y cree una nueva para preservar el historial.");
+            }
+            ValidarRuta(ruta);
             if (ModelState.IsValid)
             {
-                db.Entry(ruta).State = EntityState.Modified;
+                actual.TarifaReferencial = ruta.TarifaReferencial;
+                actual.Activa = ruta.Activa;
+                if (!tieneVuelos)
+                {
+                    actual.AeropuertoOrigenId = ruta.AeropuertoOrigenId;
+                    actual.AeropuertoDestinoId = ruta.AeropuertoDestinoId;
+                }
+                if (!actual.Activa)
+                {
+                    foreach (var frecuencia in db.Frecuencias.Where(f => f.RutaId == actual.RutaId))
+                    {
+                        frecuencia.Activa = false;
+                    }
+                }
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
@@ -121,9 +147,57 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult DeleteConfirmed(int id)
         {
             Ruta ruta = db.Rutas.Find(id);
-            db.Rutas.Remove(ruta);
+            if (ruta == null)
+            {
+                return HttpNotFound();
+            }
+            if (db.Frecuencias.Any(f => f.RutaId == id))
+            {
+                ruta.Activa = false;
+                foreach (var frecuencia in db.Frecuencias.Where(f => f.RutaId == id))
+                {
+                    frecuencia.Activa = false;
+                }
+                TempData["Aviso"] = "La ruta y sus frecuencias se desactivaron para conservar el historial asociado.";
+            }
+            else
+            {
+                db.Rutas.Remove(ruta);
+            }
             db.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+        private void ValidarRuta(Ruta ruta)
+        {
+            if (ruta.AeropuertoOrigenId == ruta.AeropuertoDestinoId)
+            {
+                ModelState.AddModelError("AeropuertoDestinoId", "El aeropuerto de origen y destino deben ser distintos.");
+            }
+            if (!db.Aeropuertoes.Any(a => a.AeropuertoId == ruta.AeropuertoOrigenId) ||
+                !db.Aeropuertoes.Any(a => a.AeropuertoId == ruta.AeropuertoDestinoId))
+            {
+                ModelState.AddModelError("", "Seleccione aeropuertos existentes para la ruta.");
+            }
+            else if (ruta.Activa && (!db.Aeropuertoes.Any(a => a.AeropuertoId == ruta.AeropuertoOrigenId && a.Activo) ||
+                !db.Aeropuertoes.Any(a => a.AeropuertoId == ruta.AeropuertoDestinoId && a.Activo)))
+            {
+                ModelState.AddModelError("", "Seleccione aeropuertos activos para la ruta.");
+            }
+            if (db.Rutas.Any(r => r.AeropuertoOrigenId == ruta.AeropuertoOrigenId &&
+                r.AeropuertoDestinoId == ruta.AeropuertoDestinoId && r.RutaId != ruta.RutaId))
+            {
+                ModelState.AddModelError("AeropuertoDestinoId", "Ya existe una ruta con esos aeropuertos.");
+            }
+            if (!ModelState.ContainsKey("TarifaReferencial") || ModelState["TarifaReferencial"].Value == null ||
+                string.IsNullOrWhiteSpace(ModelState["TarifaReferencial"].Value.AttemptedValue))
+            {
+                ModelState.AddModelError("TarifaReferencial", "La tarifa es obligatoria.");
+            }
+            else if (ruta.TarifaReferencial < 0)
+            {
+                ModelState.AddModelError("TarifaReferencial", "La tarifa no puede ser negativa.");
+            }
         }
 
         protected override void Dispose(bool disposing)

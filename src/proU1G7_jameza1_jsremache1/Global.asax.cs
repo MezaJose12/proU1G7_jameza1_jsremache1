@@ -24,10 +24,11 @@ namespace proU1G7_jameza1_jsremache1
             // Identity guarda usuarios y roles en su propia base de datos.
             using (var db = new ApplicationDbContext())
             {
-                roles(db);
-                Csuper(db);
-                Cadministrador(db);
-                arol(db);
+                CrearRoles(db);
+                CrearSuperUsuario(db);
+                CrearAdministrador(db);
+                CrearGerente(db);
+                AsignarPermisos(db);
             }
 
 #if DEBUG
@@ -37,8 +38,7 @@ namespace proU1G7_jameza1_jsremache1
                 using (var identityDb = new ApplicationDbContext())
                 {
                     var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb));
-                    var superUserName = ConfigurationManager.AppSettings["InitialSuperUserUserName"];
-                    var demoUser = string.IsNullOrWhiteSpace(superUserName) ? null : userManager.FindByName(superUserName);
+                    var demoUser = userManager.FindByName("superadmin");
                     demoUserId = demoUser == null ? null : demoUser.Id;
                 }
 
@@ -47,52 +47,45 @@ namespace proU1G7_jameza1_jsremache1
 #endif
         }
 
-        // CAMBIO: las cuentas de inicio se crean solo con credenciales locales configuradas.
-        private void Csuper(ApplicationDbContext db)
+        // CAMBIO: las credenciales de las cuentas iniciales se definen aqui, no en Web.config.
+        private void CrearSuperUsuario(ApplicationDbContext db)
         {
-            CrearUsuarioInicial(db, "InitialSuperUserUserName", "InitialSuperUserEmail", "InitialSuperUserPassword");
+            CrearUsuarioInicial(db, "superadmin", "superadmin@example.com", "superadmin123");
         }
 
-        private void Cadministrador(ApplicationDbContext db)
+        private void CrearAdministrador(ApplicationDbContext db)
         {
-            CrearUsuarioInicial(db, "InitialAdministratorUserName", "InitialAdministratorEmail", "InitialAdministratorPassword");
+            CrearUsuarioInicial(db, "administrator", "administrator@example.com", "superadmin123");
+        }
+
+        private void CrearGerente(ApplicationDbContext db)
+        {
+            CrearUsuarioInicial(db, "gerente", "gerente@example.com", "gerente123");
         }
 
         private static void CrearUsuarioInicial(
             ApplicationDbContext db,
-            string claveUsuario,
-            string claveCorreo,
-            string claveContrasena)
+            string nombre,
+            string correo,
+            string contrasena)
         {
-            var nombre = ConfigurationManager.AppSettings[claveUsuario];
-            var correo = ConfigurationManager.AppSettings[claveCorreo];
-            var contrasena = ConfigurationManager.AppSettings[claveContrasena];
-            if (string.IsNullOrWhiteSpace(nombre) && string.IsNullOrWhiteSpace(correo) && string.IsNullOrWhiteSpace(contrasena))
-            {
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(contrasena))
-            {
-                throw new InvalidOperationException("Configure usuario, correo y contraseña locales para la cuenta inicial " + claveUsuario + ".");
-            }
-
             var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
             if (userManager.FindByName(nombre) != null)
             {
                 return;
             }
 
-            var user = new ApplicationUser { UserName = nombre.Trim(), Email = correo.Trim() };
+            var user = new ApplicationUser { UserName = nombre, Email = correo };
             VerificarResultado(userManager.Create(user, contrasena), "crear la cuenta inicial " + nombre);
         }
 
-        /* Creación de roles, incluido Counter con permisos operativos limitados. */
-        private void roles(ApplicationDbContext db)
+        // CAMBIO: se mantienen los roles funcionales del sistema y se agregan los permisos del ejemplo.
+        private void CrearRoles(ApplicationDbContext db)
         {
             var rolManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
             foreach (var nombreRol in new[]
             {
-                "Cliente", "Counter", "Administrador", "SuperUsuario",
+                "Cliente", "Counter", "Administrador", "SuperUsuario", "Gerente",
                 "view", "create", "edit", "delete"
             })
             {
@@ -103,13 +96,18 @@ namespace proU1G7_jameza1_jsremache1
             }
         }
 
-        private void arol(ApplicationDbContext db)
+        private void AsignarPermisos(ApplicationDbContext db)
         {
             var usermanager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(db));
-            var nombreSuperUsuario = ConfigurationManager.AppSettings["InitialSuperUserUserName"];
-            var nombreAdministrador = ConfigurationManager.AppSettings["InitialAdministratorUserName"];
-            var superUsuario = string.IsNullOrWhiteSpace(nombreSuperUsuario) ? null : usermanager.FindByName(nombreSuperUsuario);
-            var administrador = string.IsNullOrWhiteSpace(nombreAdministrador) ? null : usermanager.FindByName(nombreAdministrador);
+            var superUsuario = usermanager.FindByName("superadmin");
+            var administrador = usermanager.FindByName("administrator");
+            var gerente = usermanager.FindByName("gerente");
+
+            if (gerente != null)
+            {
+                AsignarRolSiFalta(usermanager, gerente, "Gerente");
+                AsignarRolSiFalta(usermanager, gerente, "view");
+            }
 
             if (superUsuario != null)
             {
@@ -124,8 +122,8 @@ namespace proU1G7_jameza1_jsremache1
             {
                 AsignarRolSiFalta(usermanager, administrador, "Administrador");
                 AsignarRolSiFalta(usermanager, administrador, "view");
-                AsignarRolSiFalta(usermanager, administrador, "create");
                 AsignarRolSiFalta(usermanager, administrador, "edit");
+                AsignarRolSiFalta(usermanager, administrador, "delete");
             }
         }
 

@@ -1,9 +1,17 @@
 @model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
 @{
-    ViewBag.Title = "Mis comprobantes";
+    var puedeConsultarTodas = User.IsInRole("Counter") || User.IsInRole("Administrador") || User.IsInRole("SuperUsuario");
+    var esAdministracion = User.IsInRole("Administrador") || User.IsInRole("SuperUsuario");
+    ViewBag.Title = puedeConsultarTodas ? "Comprobantes emitidos" : "Mis comprobantes";
 }
 <main class="container py-4" aria-labelledby="page-title">
-    <header class="mb-4"><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 16 - Documentos</p><h1 id="page-title" class="h2 fw-bold">Mis comprobantes</h1><p class="text-secondary">Documentos emitidos para reservas y compras de tu cuenta.</p></header>
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 16 - Documentos</p><h1 id="page-title" class="h2 fw-bold">@(puedeConsultarTodas ? "Comprobantes emitidos" : "Mis comprobantes")</h1><p class="text-secondary mb-0">@(puedeConsultarTodas ? "Documentos emitidos para las compras registradas." : "Documentos emitidos para reservas y compras de tu cuenta.")</p></div>
+        @if (esAdministracion)
+        {
+            @Html.RouteLink("Volver a reportes", "AdminReports", null, new { @class = "btn btn-outline-secondary" })
+        }
+    </header>
     @if (TempData["Aviso"] != null)
     {
         <div class="alert alert-success" role="status">@TempData["Aviso"]</div>
@@ -15,16 +23,17 @@
     }
     @if (Model.Comprobantes.Count > 0)
     {
-        <div class="alert alert-info" role="note">La confirmacion se emite al reservar. El comprobante de venta se emite tras aprobar el pago. Por eso, una compra pagada puede mostrar ambos documentos.</div>
+        <div class="alert alert-info" role="note">Se muestra un comprobante de venta por compra pagada. Las confirmaciones de reserva no se listan porque repiten los datos de la compra. Las notas de credito aparecen por separado.</div>
         <div class="row g-3 mb-4">
             @foreach (var comprobante in Model.Comprobantes)
             {
                 <div class="col-12">
                     <article class="card shadow-sm">
-                        <div class="card-header bg-white d-flex justify-content-between"><strong>@comprobante.NumeroComprobante</strong><span>@(comprobante.TipoComprobanteCodigo == "CONFIRMACION" ? "Confirmacion de reserva" : "Comprobante de venta") - @comprobante.Estado</span></div>
+                        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2"><strong>@comprobante.NumeroComprobante</strong><span>@(comprobante.TipoComprobanteCodigo == "CONFIRMACION" ? "Confirmacion de reserva" : "Comprobante de venta") - @comprobante.Estado</span></div>
                         <div class="card-body">
-                            <dl class="row mb-2"><dt class="col-sm-3">Reserva</dt><dd class="col-sm-9">@comprobante.CodigoReserva</dd><dt class="col-sm-3">Emision</dt><dd class="col-sm-9">@comprobante.FechaEmision.ToString("dd/MM/yyyy HH:mm")</dd><dt class="col-sm-3">Total</dt><dd class="col-sm-9">@comprobante.TotalOperacion.ToString("N2") @comprobante.MonedaCodigo</dd><dt class="col-sm-3">Emisor</dt><dd class="col-sm-9">@comprobante.EmisorNombre - Identificacion: @comprobante.EmisorIdentificacion - @comprobante.EmisorDireccion</dd></dl>
-                            <p class="small text-secondary mb-0">@comprobante.LeyendaComprobante</p>
+                            <dl class="row mb-3"><dt class="col-sm-3">Reserva</dt><dd class="col-sm-9">@comprobante.CodigoReserva</dd><dt class="col-sm-3">Emision</dt><dd class="col-sm-9">@comprobante.FechaEmision.ToString("dd/MM/yyyy HH:mm")</dd><dt class="col-sm-3">Total</dt><dd class="col-sm-9">@comprobante.TotalOperacion.ToString("N2") @comprobante.MonedaCodigo</dd><dt class="col-sm-3">Metodo de pago</dt><dd class="col-sm-9">@(string.IsNullOrWhiteSpace(comprobante.MetodoPago) ? "No aplica - pendiente de pago" : comprobante.MetodoPago + (string.IsNullOrWhiteSpace(comprobante.TarjetaEnmascarada) ? "" : " - " + comprobante.TarjetaEnmascarada))</dd><dt class="col-sm-3">Emisor</dt><dd class="col-sm-9">@comprobante.EmisorNombre - Identificacion: @comprobante.EmisorIdentificacion - @comprobante.EmisorDireccion</dd></dl>
+                            <div class="d-flex flex-wrap gap-2"><a class="btn btn-sm btn-outline-primary" href="@Url.Action("ImprimirComprobante", "Interfaces", new { id = comprobante.ComprobanteId })" target="_blank" rel="noopener">Ver e imprimir</a></div>
+                            <p class="small text-secondary mt-3 mb-0">@comprobante.LeyendaComprobante</p>
                         </div>
                     </article>
                 </div>

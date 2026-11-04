@@ -3,17 +3,44 @@
     ViewBag.Title = "Modulo administrativo";
 }
 <main class="container py-4" aria-labelledby="page-title">
-    <header class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @ViewBag.NumeroPantalla - Administracion</p><h1 id="page-title" class="h2 fw-bold">@ViewBag.TitleModulo</h1></div></header>
+    <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div><p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla @ViewBag.NumeroPantalla - Administracion</p><h1 id="page-title" class="h2 fw-bold">@ViewBag.TitleModulo</h1></div>
+        @Html.RouteLink("Volver al panel", "AdminHome", null, new { @class = "btn btn-outline-secondary" })
+    </header>
     @if (ViewBag.Aviso != null) { <div class="alert alert-info" role="status">@ViewBag.Aviso</div> }
+    @if (ViewBag.TitleModulo == "Vuelos, rutas y frecuencias")
+    {
+        <section class="card shadow-sm mb-4" aria-labelledby="programacion-title">
+            <div class="card-body">
+                <h2 id="programacion-title" class="h5">Orden recomendado para programar</h2>
+                <ol class="mb-3">
+                    <li>Registre los <strong>aeropuertos</strong> y sus codigos IATA.</li>
+                    <li>Cree las <strong>rutas</strong> entre aeropuertos y defina la tarifa en USD por pasajero y tramo.</li>
+                    <li>Defina una <strong>frecuencia semanal</strong>: ruta, dia de la semana y horas locales.</li>
+                    <li>En <strong>Vuelos programados</strong>, genere las ocurrencias para fechas concretas y asigne aeronaves.</li>
+                    <li>Cree el <strong>itinerario</strong> y agregue sus vuelos como tramos en orden, verificando que cada destino conecte con el siguiente origen.</li>
+                </ol>
+                <p class="small text-secondary mb-0">Frecuencia = plantilla recurrente; vuelo = operacion en una fecha. Los itinerarios utilizan vuelos ya programados.</p>
+            </div>
+        </section>
+    }
+    @if (ViewBag.TitleModulo == "Flota y asientos")
+    {
+        <div class="alert alert-info" role="note">Configure en este orden: modelo de aeronave → mapa visual de asientos → aeronave. La matricula (por ejemplo, AV-01) identifica un avion especifico; no es el nombre del modelo.</div>
+    }
+    @if (ViewBag.TitleModulo == "Revisiones operativas")
+    {
+        <div class="alert alert-warning" role="note">Esta bandeja muestra avisos de reservas o itinerarios afectados por vuelos cancelados. Revise el vuelo y el caso asociado; «Marcar revisada» solo cierra el aviso y no reprograma el vuelo ni modifica la reserva.</div>
+    }
     @if (ViewBag.TitleModulo == "Revisiones operativas" && Model.RevisionesOperativas.Count == 0)
     {
-        <div class="alert alert-success">No hay incidencias operativas pendientes de revisión.</div>
+        <div class="alert alert-success">No hay incidencias operativas pendientes de revision.</div>
     }
-    @if (Model.AccesosAdministrativos.Count == 0)
+    @if (Model.AccesosAdministrativos.Count == 0 && ViewBag.TitleModulo != "Revisiones operativas")
     {
         <div class="alert alert-info">No hay accesos configurados para este modulo.</div>
     }
-    else
+    else if (Model.AccesosAdministrativos.Count > 0)
     {
         <div class="row g-3">
             @foreach (var acceso in Model.AccesosAdministrativos)
@@ -62,21 +89,21 @@
     @if (Model.RevisionesOperativas.Count > 0)
     {
         <section class="card shadow-sm mt-4" aria-labelledby="revisiones-title">
-            <div class="card-header bg-white"><h2 id="revisiones-title" class="h5 mb-0">Revisiones pendientes por vuelos cancelados</h2></div>
+            <div class="card-header bg-white"><h2 id="revisiones-title" class="h5 mb-0">Incidencias pendientes</h2></div>
             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
                 <thead><tr><th>Vuelo</th><th>Itinerario</th><th>Reserva</th><th>Motivo</th><th>Fecha</th><th>Accion</th></tr></thead>
                 <tbody>
                     @foreach (var revision in Model.RevisionesOperativas)
                     {
                         <tr>
-                            <td>@revision.VueloId</td><td>@(revision.ReferenciaItinerario ?? "-")</td><td>@(revision.CodigoReserva ?? "Sin reserva vinculada")</td>
+                            <td>@Html.ActionLink("Vuelo " + revision.VueloId, "Details", "Vuelo", new { id = revision.VueloId }, null)</td><td>@(revision.ReferenciaItinerario ?? "-")</td><td>@(revision.CodigoReserva ?? "Sin reserva vinculada")</td>
                             <td>@revision.Motivo</td><td>@revision.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>
                                 @using (Html.BeginForm("ResolverRevisionOperativa", "Interfaces", FormMethod.Post))
                                 {
                                     @Html.AntiForgeryToken()
                                     @Html.Hidden("id", revision.RevisionOperativaId)
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">Marcar revisada</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Cierra solo el aviso despues de revisar el caso">Cerrar aviso revisado</button>
                                 }
                             </td>
                         </tr>
