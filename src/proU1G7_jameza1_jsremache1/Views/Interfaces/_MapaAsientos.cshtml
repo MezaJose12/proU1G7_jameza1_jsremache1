@@ -1,6 +1,14 @@
 @model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
 <style>
-    .seat-reserved { background-color: #6f42c1; border-color: #6f42c1; color: #fff; }
+    .btn.seat-reserved, .btn.seat-reserved.disabled {
+        --bs-btn-color: #fff;
+        --bs-btn-bg: #6f42c1;
+        --bs-btn-border-color: #6f42c1;
+        --bs-btn-disabled-color: #fff;
+        --bs-btn-disabled-bg: #6f42c1;
+        --bs-btn-disabled-border-color: #6f42c1;
+        --bs-btn-disabled-opacity: 1;
+    }
     .badge.seat-reserved { background-color: #6f42c1; }
 </style>
 <div class="card shadow-sm"><div class="card-body">
