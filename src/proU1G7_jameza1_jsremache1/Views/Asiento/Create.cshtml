@@ -1,14 +1,14 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Asiento
 
 @{
-    ViewBag.Title = "Create";
+    ViewBag.Title = "Configurar asiento";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create</h2>
+<h2>Configurar asiento</h2>
+<p class="text-secondary">Numero identifica la posicion (1 a 7); el codigo se forma con fila y lado, por ejemplo 2D. La puerta ocupa el lugar 1I y no es un asiento.</p>
 
-
-@using (Html.BeginForm()) 
+@using (Html.BeginForm())
 {
     @Html.AntiForgeryToken()
     
@@ -19,7 +19,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.ModeloAeronaveId, "ModeloAeronaveId", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("ModeloAeronaveId", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("ModeloAeronaveId", null, "Seleccione un modelo", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.ModeloAeronaveId, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -27,7 +27,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.NumeroAsiento, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.NumeroAsiento, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.NumeroAsiento, new { htmlAttributes = new { @class = "form-control", required = "required", min = "1", max = "7" } })
                 @Html.ValidationMessageFor(model => model.NumeroAsiento, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -35,7 +35,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Codigo, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Codigo, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Codigo, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "2" } })
                 @Html.ValidationMessageFor(model => model.Codigo, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -43,7 +43,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Fila, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Fila, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Fila, new { htmlAttributes = new { @class = "form-control", required = "required", min = "1", max = "4" } })
                 @Html.ValidationMessageFor(model => model.Fila, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -51,7 +51,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Lado, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Lado, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Lado, new { htmlAttributes = new { @class = "form-control", required = "required", minlength = "1", maxlength = "1" } })
                 @Html.ValidationMessageFor(model => model.Lado, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -59,7 +59,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Ubicacion, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Ubicacion, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Ubicacion, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "100" } })
                 @Html.ValidationMessageFor(model => model.Ubicacion, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -72,8 +72,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver al mapa de asientos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

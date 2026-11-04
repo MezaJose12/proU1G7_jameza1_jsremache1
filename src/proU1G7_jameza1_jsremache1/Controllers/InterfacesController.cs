@@ -1656,11 +1656,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult Comprobantes()
         {
             var usuarioId = User.Identity.GetUserId();
-            var puedeConsultarTodas = User.IsInRole("Counter");
+            var puedeConsultarTodas = User.IsInRole("Counter") || User.IsInRole("Administrador") || User.IsInRole("SuperUsuario");
             var model = new InterfacesViewModel();
             model.Comprobantes = db.Database.SqlQuery<ComprobanteInterfazViewModel>(
-                "SELECT NumeroComprobante, TipoComprobanteCodigo, TipoComprobante, EstadoComprobanteCodigo AS Estado, FechaEmision, CodigoReserva, TotalOperacion, MonedaCodigo, EmisorNombre, EmisorIdentificacion, EmisorDireccion, LeyendaComprobante " +
-                "FROM dbo.vw_ComprobanteDetalle WHERE (UsuarioId = @p0 OR @p1 = 1) ORDER BY FechaEmision DESC",
+                "SELECT ComprobanteId, NumeroComprobante, TipoComprobanteCodigo, TipoComprobante, EstadoComprobanteCodigo AS Estado, FechaEmision, CodigoReserva, TotalOperacion, MonedaCodigo, EmisorNombre, EmisorIdentificacion, EmisorDireccion, LeyendaComprobante, MetodoPago, MarcaTarjeta, TarjetaEnmascarada, CodigoOperacion, EsSimulado " +
+                "FROM dbo.vw_ComprobanteDetalle WHERE TipoComprobanteCodigo = 'FACTURA' AND (UsuarioId = @p0 OR @p1 = 1) ORDER BY FechaEmision DESC",
                 usuarioId, puedeConsultarTodas ? 1 : 0).ToList();
             model.NotasCredito = db.Database.SqlQuery<NotaCreditoInterfazViewModel>(
                 "SELECT c.NumeroComprobante, r.CodigoReserva, c.FechaEmision, n.ImporteReembolsado, " +
@@ -1673,11 +1673,32 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("Comprobantes", model);
         }
 
+        [Authorize]
+        public ActionResult ImprimirComprobante(int? id)
+        {
+            if (!id.HasValue || id.Value <= 0)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+
+            var usuarioId = User.Identity.GetUserId();
+            var puedeConsultarTodas = User.IsInRole("Counter") || User.IsInRole("Administrador") || User.IsInRole("SuperUsuario");
+            var comprobante = db.Database.SqlQuery<ComprobanteInterfazViewModel>(
+                "SELECT ComprobanteId, NumeroComprobante, TipoComprobanteCodigo, TipoComprobante, EstadoComprobanteCodigo AS Estado, FechaEmision, CodigoReserva, TotalOperacion, MonedaCodigo, EmisorNombre, EmisorIdentificacion, EmisorDireccion, LeyendaComprobante, MetodoPago, MarcaTarjeta, TarjetaEnmascarada, CodigoOperacion, EsSimulado " +
+                "FROM dbo.vw_ComprobanteDetalle WHERE ComprobanteId = @p0 AND TipoComprobanteCodigo = 'FACTURA' AND (UsuarioId = @p1 OR @p2 = 1)",
+                id.Value, usuarioId, puedeConsultarTodas ? 1 : 0).FirstOrDefault();
+            if (comprobante == null)
+            {
+                return HttpNotFound();
+            }
+
+            return View("ImprimirComprobante", comprobante);
+        }
+
         [Authorize(Roles = "Administrador,SuperUsuario")]
         public ActionResult AdminIndex()
         {
-            var model = ObtenerResumenAdministrativo();
-            return View("AdminIndex", model);
+            return View("AdminIndex", new InterfacesViewModel());
         }
 
         [Authorize(Roles = "Administrador,SuperUsuario")]
@@ -1688,11 +1709,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var model = ObtenerResumenAdministrativo();
             foreach (var acceso in new[]
             {
-                Acceso("Vuelos programados", "Consultar o editar vuelos existentes.", "Vuelo", "Index"),
-                Acceso("Frecuencias", "Mantener días y horarios de operación.", "Frecuencia", "Index"),
-                Acceso("Rutas", "Administrar origen, destino y tarifa referencial.", "Rutas", "Index"),
-                Acceso("Itinerarios", "Mantener itinerarios y sus tramos.", "Itinerario", "Index"),
-                Acceso("Aeropuertos", "Configurar aeropuertos activos.", "Aeropuerto", "Index")
+                Acceso("1. Aeropuertos", "Registre primero cada aeropuerto con su codigo IATA de tres letras.", "Aeropuerto", "Index"),
+                Acceso("2. Rutas", "Conecte dos aeropuertos existentes e indique la tarifa por pasajero y tramo.", "Rutas", "Index"),
+                Acceso("3. Frecuencias semanales", "Defina el dia y las horas recurrentes para una ruta.", "Frecuencia", "Index"),
+                Acceso("4. Vuelos programados", "Genere vuelos reales desde frecuencias para un rango de fechas y asigne aeronaves.", "Vuelo", "Index"),
+                Acceso("5. Itinerarios y tramos", "Cree un itinerario y agregue vuelos en el orden de conexion.", "Itinerario", "Index")
             })
             {
                 model.AccesosAdministrativos.Add(acceso);
@@ -1708,9 +1729,9 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var model = ObtenerResumenAdministrativo();
             foreach (var acceso in new[]
             {
-                Acceso("Aeronaves", "Consultar matrículas y estado de la flota.", "Aeronaves", "Index"),
-                Acceso("Modelos de aeronave", "Revisar fabricante y capacidad.", "ModeloAeronave", "Index"),
-                Acceso("Asientos", "Consultar la configuración de los siete asientos.", "Asiento", "Index")
+                Acceso("1. Modelos de aeronave", "Registre fabricante, nombre comercial y capacidad del modelo.", "ModeloAeronave", "Index"),
+                Acceso("2. Mapa de asientos", "Configure visualmente cada posicion antes de usar el modelo en la flota.", "Asiento", "Index"),
+                Acceso("3. Aeronaves", "Registre la matricula o identificador unico de cada avion real.", "Aeronaves", "Index")
             })
             {
                 model.AccesosAdministrativos.Add(acceso);
@@ -2083,18 +2104,20 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return View("Reportes", model);
             }
 
+            var fechaDesde = desde.HasValue ? desde.Value.Date : (DateTime?)null;
+            var fechaHastaExclusiva = hasta.HasValue ? hasta.Value.Date.AddDays(1) : (DateTime?)null;
+
             var reservas = db.Reservas.AsQueryable();
             var compras = db.Compras.AsQueryable();
-            if (desde.HasValue)
+            if (fechaDesde.HasValue)
             {
-                reservas = reservas.Where(r => r.FechaCreacion >= desde.Value.Date);
-                compras = compras.Where(c => c.FechaCompra >= desde.Value.Date);
+                reservas = reservas.Where(r => r.FechaCreacion >= fechaDesde.Value);
+                compras = compras.Where(c => c.FechaCompra >= fechaDesde.Value);
             }
-            if (hasta.HasValue)
+            if (fechaHastaExclusiva.HasValue)
             {
-                var limiteSuperior = hasta.Value.Date.AddDays(1);
-                reservas = reservas.Where(r => r.FechaCreacion < limiteSuperior);
-                compras = compras.Where(c => c.FechaCompra < limiteSuperior);
+                reservas = reservas.Where(r => r.FechaCreacion < fechaHastaExclusiva.Value);
+                compras = compras.Where(c => c.FechaCompra < fechaHastaExclusiva.Value);
             }
 
             model.ReservasPorEstado = reservas
@@ -2669,7 +2692,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 TotalReservas = db.Reservas.Count(),
                 TotalPasajeros = db.Pasajeroes.Count(),
                 TotalCompras = db.Compras.Count(),
-                TotalComprobantes = db.Comprobantes.Count()
+                TotalComprobantes = db.Comprobantes.Count(c => c.TipoComprobanteCodigo == "FACTURA")
             };
         }
 

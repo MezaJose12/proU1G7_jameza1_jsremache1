@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Web;
@@ -19,7 +21,10 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         // GET: Itinerario
         public ActionResult Index()
         {
-            var itinerarios = db.Itinerarios.Include(i => i.EstadoItinerario);
+            var itinerarios = db.Itinerarios
+                .Include(i => i.EstadoItinerario)
+                .Include(i => i.TramoItinerarios);
+            ViewBag.Aviso = TempData["Aviso"] as string;
             return View(itinerarios.ToList());
         }
 
@@ -117,9 +122,47 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public ActionResult DeleteConfirmed(int id)
         {
             Itinerario itinerario = db.Itinerarios.Find(id);
+            if (itinerario == null)
+            {
+                return HttpNotFound();
+            }
+
+            if (db.TramoItinerarios.Any(t => t.ItinerarioId == id))
+            {
+                TempData["Aviso"] = "No se puede eliminar el itinerario porque tiene tramos asociados.";
+                return RedirectToAction("Index");
+            }
+
             db.Itinerarios.Remove(itinerario);
-            db.SaveChanges();
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                if (!EsViolacionDeClaveForanea(ex))
+                {
+                    throw;
+                }
+
+                TempData["Aviso"] = "No se puede eliminar el itinerario porque tiene tramos asociados.";
+            }
+
             return RedirectToAction("Index");
+        }
+
+        private static bool EsViolacionDeClaveForanea(Exception exception)
+        {
+            for (Exception actual = exception; actual != null; actual = actual.InnerException)
+            {
+                SqlException errorSql = actual as SqlException;
+                if (errorSql != null && errorSql.Number == 547)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         protected override void Dispose(bool disposing)

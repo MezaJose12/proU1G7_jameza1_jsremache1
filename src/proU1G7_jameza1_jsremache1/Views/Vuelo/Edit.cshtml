@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.Vuelo
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "Editar vuelo";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Edit</h2>
+<h2>Editar vuelo programado</h2>
+<p class="text-secondary">Este vuelo tiene una fecha de operacion y un horario heredado de su frecuencia. La matricula identifica la aeronave asignada.</p>
 
 
 @using (Html.BeginForm())
@@ -19,7 +20,7 @@
         @Html.HiddenFor(model => model.VueloId)
 
         <div class="form-group">
-            @Html.LabelFor(model => model.FrecuenciaId, "FrecuenciaId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.FrecuenciaId, "Frecuencia semanal (ruta y horario)", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.DropDownList("FrecuenciaId", null, htmlAttributes: new { @class = "form-control" })
                 @Html.ValidationMessageFor(model => model.FrecuenciaId, "", new { @class = "text-danger" })
@@ -29,23 +30,23 @@
         <div class="form-group">
             @Html.LabelFor(model => model.FechaOperacion, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.FechaOperacion, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.FechaOperacion, new { htmlAttributes = new { @class = "form-control", required = "required" } })
                 @Html.ValidationMessageFor(model => model.FechaOperacion, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.AeronaveId, "AeronaveId", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.AeronaveId, "Aeronave asignada", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("AeronaveId", null, "Sin asignar", new { @class = "form-control" })
+                @Html.DropDownList("AeronaveId", null, "Seleccione una aeronave", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.AeronaveId, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.EstadoVueloCodigo, "EstadoVueloCodigo", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.EstadoVueloCodigo, "Estado del vuelo", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownList("EstadoVueloCodigo", null, htmlAttributes: new { @class = "form-control" })
+                @Html.DropDownList("EstadoVueloCodigo", null, "Seleccione un estado", new { @class = "form-control", required = "required" })
                 @Html.ValidationMessageFor(model => model.EstadoVueloCodigo, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -58,8 +59,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a vuelos programados", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Vuelos e itinerarios", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

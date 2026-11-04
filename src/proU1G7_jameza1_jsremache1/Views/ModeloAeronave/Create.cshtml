@@ -1,11 +1,12 @@
 ﻿@model proU1G7_jameza1_jsremache1.Models.ModeloAeronave
 
 @{
-    ViewBag.Title = "Create";
+    ViewBag.Title = "Crear modelo de aeronave";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create</h2>
+<h2>Crear modelo de aeronave</h2>
+<p class="text-secondary">Registre la familia o version del avion. Al guardar, continuara al mapa visual para configurar las posiciones de asiento.</p>
 
 
 @using (Html.BeginForm()) 
@@ -19,7 +20,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Fabricante, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Fabricante, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Fabricante, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "60" } })
                 @Html.ValidationMessageFor(model => model.Fabricante, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -27,7 +28,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Nombre, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Nombre, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.Nombre, new { htmlAttributes = new { @class = "form-control", required = "required", maxlength = "60" } })
                 @Html.ValidationMessageFor(model => model.Nombre, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -35,7 +36,8 @@
         <div class="form-group">
             @Html.LabelFor(model => model.CapacidadAsientos, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.CapacidadAsientos, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.EditorFor(model => model.CapacidadAsientos, new { htmlAttributes = new { @class = "form-control", required = "required", min = "1", max = "7" } })
+                <small class="form-text text-muted">Cantidad de asientos que se configuraran; en este proyecto el maximo es 7.</small>
                 @Html.ValidationMessageFor(model => model.CapacidadAsientos, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -48,8 +50,9 @@
     </div>
 }
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
+<div class="d-flex flex-wrap gap-2 mt-3">
+    @Html.ActionLink("Volver a modelos", "Index", null, new { @class = "btn btn-outline-secondary" })
+    @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
 </div>
 
 @section Scripts {

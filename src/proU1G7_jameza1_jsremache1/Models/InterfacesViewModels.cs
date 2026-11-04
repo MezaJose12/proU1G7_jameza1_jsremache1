@@ -233,6 +233,7 @@ namespace proU1G7_jameza1_jsremache1.Models
 
     public class ComprobanteInterfazViewModel
     {
+        public int ComprobanteId { get; set; }
         public string NumeroComprobante { get; set; }
         public string TipoComprobanteCodigo { get; set; }
         public string TipoComprobante { get; set; }
@@ -245,6 +246,11 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string EmisorIdentificacion { get; set; }
         public string EmisorDireccion { get; set; }
         public string LeyendaComprobante { get; set; }
+        public string MetodoPago { get; set; }
+        public string MarcaTarjeta { get; set; }
+        public string TarjetaEnmascarada { get; set; }
+        public string CodigoOperacion { get; set; }
+        public bool? EsSimulado { get; set; }
     }
 
     public class NotaCreditoInterfazViewModel
