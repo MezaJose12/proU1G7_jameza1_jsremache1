@@ -11,7 +11,7 @@ using proU1G7_jameza1_jsremache1.Models;
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
     // CAMBIO: restringir cambios en el catálogo de documentos.
-    [Authorize(Roles = "Administrador,SuperUsuario")]
+    [AutorizacionAdministrativa]
     public class TipoDocumentoIdentidadsController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

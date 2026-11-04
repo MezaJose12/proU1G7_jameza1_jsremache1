@@ -10,7 +10,7 @@ using proU1G7_jameza1_jsremache1.Models;
 
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
-    [Authorize(Roles = "Administrador,SuperUsuario")]
+    [AutorizacionAdministrativa]
     [RoutePrefix("Admin/Aeronaves")]
     [Route("{action=Index}/{id?}")]
     public class AeronavesController : Controller
@@ -114,7 +114,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
 
         // GET: Aeronaves/Delete/5
-        [Authorize(Roles = "SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario")]
         public ActionResult Delete(int? id)
         {
             if (id == null)
@@ -130,7 +130,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         // POST: Aeronaves/Delete/5
-        [Authorize(Roles = "SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)

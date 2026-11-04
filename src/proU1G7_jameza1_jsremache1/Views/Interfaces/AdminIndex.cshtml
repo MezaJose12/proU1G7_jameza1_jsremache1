@@ -11,23 +11,37 @@
     <div class="row g-3">
         <div class="col-12 col-md-6">
             <a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminFlights")">
-                <div class="card-body"><h2 class="h5">Vuelos e itinerarios <span class="badge text-bg-light">Pantalla 18</span></h2><p class="text-secondary mb-0">Configure aeropuertos, rutas y frecuencias; luego genere vuelos y arme itinerarios por tramos.</p></div>
+                <div class="card-body"><h2 class="h5">Vuelos e itinerarios <span class="badge text-bg-light">Pantalla 18</span></h2><p class="text-secondary mb-0">@(User.IsInRole("Counter") ? "Consulte vuelos programados y sus detalles." : "Configure aeropuertos, rutas y frecuencias; luego genere vuelos y arme itinerarios por tramos.")</p></div>
             </a>
         </div>
-        <div class="col-12 col-md-6">
-            <a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminAircraft")">
-                <div class="card-body"><h2 class="h5">Aeronaves y asignaciones <span class="badge text-bg-light">Pantalla 19</span></h2><p class="text-secondary mb-0">Cree modelos, configure su mapa de asientos y registre cada aeronave.</p></div>
-            </a>
-        </div>
+        @if (!User.IsInRole("Counter"))
+        {
+            <div class="col-12 col-md-6">
+                <a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminAircraft")">
+                    <div class="card-body"><h2 class="h5">Aeronaves y asignaciones <span class="badge text-bg-light">Pantalla 19</span></h2><p class="text-secondary mb-0">Cree modelos, configure su mapa de asientos y registre cada aeronave.</p></div>
+                </a>
+            </div>
+        }
         <div class="col-12 col-md-6">
             <a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminManagement")">
-                <div class="card-body"><h2 class="h5">Usuarios, pasajeros y reservas <span class="badge text-bg-light">Pantalla 20</span></h2><p class="text-secondary mb-0">Consulte pasajeros, reservas y catalogos; solo SuperUsuario asigna roles operativos.</p></div>
+                <div class="card-body"><h2 class="h5">Usuarios, pasajeros y reservas <span class="badge text-bg-light">Pantalla 20</span></h2><p class="text-secondary mb-0">@(User.IsInRole("Counter") ? "Consulte usuarios, pasajeros y reservas para atender a los clientes." : "Consulte pasajeros, reservas y catalogos; solo Administrador crea usuarios y asigna roles.")</p></div>
             </a>
         </div>
-        <div class="col-12 col-md-6">
-            <a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminReports")">
-                <div class="card-body"><h2 class="h5">Consultas y reportes <span class="badge text-bg-light">Pantalla 21</span></h2><p class="text-secondary mb-0">Revise conteos y estados por periodo, consulte comprobantes e imprima el reporte.</p></div>
-            </a>
-        </div>
+        @if (!User.IsInRole("Counter"))
+        {
+            <div class="col-12 col-md-6">
+                <a class="card h-100 shadow-sm text-decoration-none" href="@Url.RouteUrl("AdminReports")">
+                    <div class="card-body"><h2 class="h5">Consultas y reportes <span class="badge text-bg-light">Pantalla 21</span></h2><p class="text-secondary mb-0">Revise conteos y estados por periodo; Administrador puede imprimir el reporte.</p></div>
+                </a>
+            </div>
+        }
+        @if (User.IsInRole("Counter"))
+        {
+            <div class="col-12 col-md-6">
+                <a class="card h-100 shadow-sm text-decoration-none" href="@Url.Action("Comprobantes", "Interfaces")">
+                    <div class="card-body"><h2 class="h5">Comprobantes</h2><p class="text-secondary mb-0">Consulte los comprobantes de las compras registradas.</p></div>
+                </a>
+            </div>
+        }
     </div>
 </main>

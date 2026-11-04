@@ -18,15 +18,22 @@
             </button>
             <div class="collapse navbar-collapse" id="mainNavigation">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">@Html.ActionLink("Inicio", "Index", "Home", new { area = "" }, new { @class = "nav-link" })</li>
+                    @if (!User.IsInRole("Administrador") && !User.IsInRole("SuperUsuario") && !User.IsInRole("Counter"))
+                    {
+                        <li class="nav-item">@Html.ActionLink("Inicio", "Index", "Home", new { area = "" }, new { @class = "nav-link" })</li>
+                    }
                     <li class="nav-item">@Html.RouteLink("Buscar vuelos", "FlightSearch", null, new { @class = "nav-link" })</li>
-                    @if (Request.IsAuthenticated)
+                    @if (User.IsInRole("Cliente"))
                     {
                         <li class="nav-item">@Html.RouteLink("Mis reservas", "MyReservations", null, new { @class = "nav-link" })</li>
                         <li class="nav-item">@Html.RouteLink("Check-in", "CheckIn", null, new { @class = "nav-link" })</li>
                         <li class="nav-item">@Html.RouteLink("Comprobantes", "Receipts", null, new { @class = "nav-link" })</li>
                     }
-                    @if (User.IsInRole("view"))
+                    else if (User.IsInRole("Counter"))
+                    {
+                        <li class="nav-item">@Html.RouteLink("Check-in", "CheckIn", null, new { @class = "nav-link" })</li>
+                    }
+                    @if (User.IsInRole("Administrador") || User.IsInRole("SuperUsuario") || User.IsInRole("Counter"))
                     {
                         <li class="nav-item">@Html.RouteLink("Administracion", "AdminHome", null, new { @class = "nav-link" })</li>
                     }

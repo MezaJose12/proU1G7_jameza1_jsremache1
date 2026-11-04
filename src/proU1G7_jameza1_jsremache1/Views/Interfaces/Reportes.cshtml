@@ -25,7 +25,10 @@
         </div>
         <div class="d-flex flex-wrap gap-2 no-print">
             @Html.RouteLink("Volver al panel", "AdminHome", null, new { @class = "btn btn-outline-secondary" })
-            <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+            @if (User.IsInRole("Administrador") && !User.IsInRole("SuperUsuario"))
+            {
+                <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+            }
         </div>
     </header>
 

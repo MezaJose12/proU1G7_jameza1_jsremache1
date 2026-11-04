@@ -52,7 +52,7 @@
                 <aside class="col-12 col-lg-4"><div class="card shadow-sm"><div class="card-body">
                     <h2 class="h5">Disponibilidad</h2><p>Capacidad maxima: siete asientos.</p>
                     @Html.RouteLink("Regresar a resultados", "FlightResults", null, new { @class = "btn btn-outline-secondary" })
-                    @if (Request.IsAuthenticated) { @Html.RouteLink("Seleccionar vuelo", "SeatSelection", new { id = Model.VueloId }, new { @class = "btn btn-primary mt-2" }) }
+                    @if (User.IsInRole("Cliente") || User.IsInRole("Counter")) { @Html.RouteLink("Seleccionar vuelo", "SeatSelection", new { id = Model.VueloId }, new { @class = "btn btn-primary mt-2" }) }
                     else { @Html.ActionLink("Iniciar sesion para reservar", "Login", "Account", new { ReturnUrl = Url.RouteUrl("SeatSelection", new { id = Model.VueloId }) }, new { @class = "btn btn-primary mt-2" }) }
                 </div></div></aside>
             </div>

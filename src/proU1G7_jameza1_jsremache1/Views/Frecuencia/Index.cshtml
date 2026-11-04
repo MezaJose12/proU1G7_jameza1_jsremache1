@@ -8,7 +8,10 @@
 <main class="container py-4">
     <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div><h1 class="h2">Frecuencias semanales</h1><p class="text-secondary mb-0">Plantillas recurrentes por dia y hora; para crear vuelos con fecha use la generacion desde vuelos programados.</p></div>
-        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Crear frecuencia", "Create", null, new { @class = "btn btn-primary" }) @Html.ActionLink("Ver vuelos programados", "Index", "Vuelo", null, new { @class = "btn btn-outline-primary" }) @Html.RouteLink("Volver al modulo", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })</div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (User.IsInRole("Administrador")) { @Html.ActionLink("Crear frecuencia", "Create", null, new { @class = "btn btn-primary" }) }
+            @Html.ActionLink("Ver vuelos programados", "Index", "Vuelo", null, new { @class = "btn btn-outline-primary" }) @Html.RouteLink("Volver al modulo", "AdminFlights", null, new { @class = "btn btn-outline-secondary" })
+        </div>
     </header>
     @if (ViewBag.Aviso != null)
     {
@@ -45,8 +48,8 @@
         <td>@item.Ruta.Aeropuerto.CodigoIATA - @item.Ruta.Aeropuerto1.CodigoIATA (@item.Ruta.TarifaReferencial.ToString("0.00") USD)</td>
         <td>
             @Html.ActionLink("Editar", "Edit", new { id=item.FrecuenciaId }) |
-            @Html.ActionLink("Detalle", "Details", new { id=item.FrecuenciaId }) |
-            @Html.ActionLink("Eliminar", "Delete", new { id=item.FrecuenciaId })
+            @Html.ActionLink("Detalle", "Details", new { id=item.FrecuenciaId })
+            @if (User.IsInRole("Administrador")) { @Html.ActionLink("Eliminar", "Delete", new { id=item.FrecuenciaId }) }
         </td>
     </tr>
 }

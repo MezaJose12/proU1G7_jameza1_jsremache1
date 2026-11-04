@@ -55,12 +55,12 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public async Task<ActionResult> Index(ManageMessageId? message)
         {
             ViewBag.StatusMessage =
-                message == ManageMessageId.ChangePasswordSuccess ? "Su contraseña se ha cambiado."
-                : message == ManageMessageId.SetPasswordSuccess ? "Su contraseña se ha establecido."
-                : message == ManageMessageId.SetTwoFactorSuccess ? "Su proveedor de autenticación de dos factores se ha establecido."
+                message == ManageMessageId.ChangePasswordSuccess ? "Su contrasena se ha cambiado."
+                : message == ManageMessageId.SetPasswordSuccess ? "Su contrasena se ha establecido."
+                : message == ManageMessageId.SetTwoFactorSuccess ? "Su proveedor de autenticacion de dos factores se ha establecido."
                 : message == ManageMessageId.Error ? "Se ha producido un error."
-                : message == ManageMessageId.AddPhoneSuccess ? "Se ha agregado su número de teléfono."
-                : message == ManageMessageId.RemovePhoneSuccess ? "Se ha quitado su número de teléfono."
+                : message == ManageMessageId.AddPhoneSuccess ? "Se ha agregado su numero de telefono."
+                : message == ManageMessageId.RemovePhoneSuccess ? "Se ha quitado su numero de telefono."
                 : "";
 
             var userId = User.Identity.GetUserId();
@@ -123,7 +123,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 var message = new IdentityMessage
                 {
                     Destination = model.Number,
-                    Body = "Su código de seguridad es: " + code
+                    Body = "Su codigo de seguridad es: " + code
                 };
                 await UserManager.SmsService.SendAsync(message);
             }
@@ -190,7 +190,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 return RedirectToAction("Index", new { Message = ManageMessageId.AddPhoneSuccess });
             }
             // Si llegamos a este punto, es que se ha producido un error y volvemos a mostrar el formulario
-            ModelState.AddModelError("", "No se ha podido comprobar el teléfono");
+            ModelState.AddModelError("", "No se ha podido comprobar el telefono");
             return View(model);
         }
 
@@ -281,7 +281,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         public async Task<ActionResult> ManageLogins(ManageMessageId? message)
         {
             ViewBag.StatusMessage =
-                message == ManageMessageId.RemoveLoginSuccess ? "Se ha quitado el inicio de sesión externo."
+                message == ManageMessageId.RemoveLoginSuccess ? "Se ha quitado el inicio de sesion externo."
                 : message == ManageMessageId.Error ? "Se ha producido un error."
                 : "";
             var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());

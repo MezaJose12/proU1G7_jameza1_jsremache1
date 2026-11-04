@@ -8,7 +8,10 @@
 <main class="container py-4">
     <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div><h1 class="h2">Aeronaves registradas</h1><p class="text-secondary mb-0">Cada matricula identifica un avion concreto y se vincula a un modelo con asientos configurados.</p></div>
-        <div class="d-flex flex-wrap gap-2">@Html.ActionLink("Registrar aeronave", "Create", null, new { @class = "btn btn-primary" }) @Html.ActionLink("Ver modelos", "Index", "ModeloAeronave", null, new { @class = "btn btn-outline-primary" }) @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })</div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (User.IsInRole("Administrador")) { @Html.ActionLink("Registrar aeronave", "Create", null, new { @class = "btn btn-primary" }) }
+            @Html.ActionLink("Ver modelos", "Index", "ModeloAeronave", null, new { @class = "btn btn-outline-primary" }) @Html.RouteLink("Volver a Flota", "AdminAircraft", null, new { @class = "btn btn-outline-secondary" })
+        </div>
     </header>
     @if (ViewBag.Aviso != null)
     {
@@ -29,7 +32,10 @@
                     <td class="d-flex flex-wrap gap-2">
                         @Html.ActionLink("Editar", "Edit", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-primary" })
                         @Html.ActionLink("Detalle", "Details", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-secondary" })
-                        @Html.ActionLink("Eliminar", "Delete", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-danger" })
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            @Html.ActionLink("Eliminar", "Delete", new { id = item.AeronaveId }, new { @class = "btn btn-sm btn-outline-danger" })
+                        }
                     </td>
                 </tr>
             }

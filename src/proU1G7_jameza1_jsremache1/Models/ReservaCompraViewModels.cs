@@ -65,17 +65,17 @@ namespace proU1G7_jameza1_jsremache1.Models
         public IList<MetodoPagoOpcionViewModel> MetodosPago { get; set; }
         public IList<MarcaTarjetaOpcionViewModel> MarcasTarjeta { get; set; }
 
-        [Required(ErrorMessage = "Seleccione un método de pago.")]
-        [Display(Name = "Método de pago")]
+        [Required(ErrorMessage = "Seleccione un metodo de pago.")]
+        [Display(Name = "Metodo de pago")]
         public string MetodoPagoCodigo { get; set; }
 
         [Required(ErrorMessage = "Seleccione la marca de su tarjeta.")]
         [Display(Name = "Marca de la tarjeta")]
         public string MarcaTarjetaCodigo { get; set; }
 
-        [Required(ErrorMessage = "Ingrese el número de tarjeta.")]
-        [RegularExpression(@"^[0-9 ]+$", ErrorMessage = "Use solo números en el número de tarjeta.")]
-        [Display(Name = "Número de tarjeta")]
+        [Required(ErrorMessage = "Ingrese el numero de tarjeta.")]
+        [RegularExpression(@"^[0-9 ]+$", ErrorMessage = "Use solo numeros en el numero de tarjeta.")]
+        [Display(Name = "Numero de tarjeta")]
         public string NumeroTarjeta { get; set; }
 
         [Required(ErrorMessage = "Ingrese el nombre del titular.")]
@@ -88,9 +88,9 @@ namespace proU1G7_jameza1_jsremache1.Models
         [Display(Name = "Vencimiento")]
         public string Vencimiento { get; set; }
 
-        [Required(ErrorMessage = "Ingrese el código de seguridad.")]
-        [RegularExpression(@"^[0-9]{3,4}$", ErrorMessage = "El código debe tener 3 o 4 dígitos.")]
-        [Display(Name = "Código de seguridad")]
+        [Required(ErrorMessage = "Ingrese el codigo de seguridad.")]
+        [RegularExpression(@"^[0-9]{3,4}$", ErrorMessage = "El codigo debe tener 3 o 4 digitos.")]
+        [Display(Name = "Codigo de seguridad")]
         public string CodigoSeguridad { get; set; }
     }
 

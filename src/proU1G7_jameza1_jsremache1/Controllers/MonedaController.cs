@@ -11,7 +11,7 @@ using proU1G7_jameza1_jsremache1.Models;
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
     // CAMBIO: restringir el mantenimiento del catálogo monetario.
-    [Authorize(Roles = "Administrador,SuperUsuario")]
+    [AutorizacionAdministrativa]
     public class MonedaController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

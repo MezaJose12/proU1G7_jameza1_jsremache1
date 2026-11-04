@@ -1,92 +1,156 @@
 @model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
 @{
-    ViewBag.Title = "Check-in";
+    var mostrandoPases = Model.PasesAbordaje != null && Model.PasesAbordaje.Count > 0;
+    ViewBag.Title = mostrandoPases ? "Pases de abordar" : "Check-in";
 }
+<style>
+    .boarding-pass { border: 2px solid #0d6efd; border-radius: 1rem; overflow: hidden; }
+    .boarding-pass__label { color: #6c757d; font-size: .75rem; text-transform: uppercase; }
+    @@media print {
+        nav, footer, .aviation-background, .no-print { display: none !important; }
+        body, .body-content { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+        .container { max-width: none !important; width: 100% !important; }
+        .boarding-pass { break-inside: avoid; margin-bottom: 12mm !important; box-shadow: none !important; }
+        @@page { size: A4; margin: 14mm; }
+    }
+</style>
 <main class="container py-4" aria-labelledby="page-title">
     <header class="mb-4">
         <p class="text-uppercase text-primary fw-semibold small mb-1">Pantalla 15 - Servicio al pasajero</p>
-        <h1 id="page-title" class="h2 fw-bold">Check-in</h1>
-        <p class="text-secondary">Registra el check-in de cada pasajero confirmado dentro de la ventana habilitada.</p>
+        <h1 id="page-title" class="h2 fw-bold">@(mostrandoPases ? "Pases de abordar" : "Check-in")</h1>
+        <p class="text-secondary">@(mostrandoPases ? "Consulta e imprime los pases de abordar de los pasajeros con check-in completado." : "Registra el check-in de cada pasajero confirmado dentro de la ventana habilitada.")</p>
     </header>
-    @if (!string.IsNullOrWhiteSpace(Model.Mensaje))
+    @if (mostrandoPases)
     {
-        <div class="alert alert-info" role="status">@Model.Mensaje</div>
-    }
-    @using (Html.BeginForm("RegistrarCheckIn", "Interfaces", FormMethod.Post, new { @class = "card shadow-sm mb-4" }))
-    {
-        @Html.AntiForgeryToken()
-        <div class="card-body">
-            <h2 class="h5">Buscar reserva y pasajero</h2>
-            <p class="text-secondary">Se verifican titularidad, compra pagada, documento y ventana de salida (24 h antes hasta 60 min antes).</p>
-            <div class="row g-3">
-                <div class="col-12 col-md-5">
-                    <label for="codigoReserva" class="form-label">Codigo de reserva</label>
-                    <input id="codigoReserva" name="codigoReserva" class="form-control" maxlength="20" required />
-                </div>
-                <div class="col-12 col-md-5">
-                    <label for="documento" class="form-label">Documento del pasajero</label>
-                    <input id="documento" name="documento" class="form-control" minlength="5" maxlength="20" required />
-                </div>
-                <div class="col-12 col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Registrar</button>
-                </div>
-            </div>
+        <div class="d-flex flex-wrap gap-2 mb-4 no-print">
+            @Html.RouteLink("Volver a check-in", "CheckIn", null, new { @class = "btn btn-outline-secondary" })
+            <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir pases</button>
         </div>
-    }
-    @if (Model.Reservas.Count == 0)
-    {
-        <section class="card shadow-sm">
-            <div class="card-body text-center py-5">
-                <h2 class="h5">No hay reservas confirmadas</h2>
-                <p class="text-secondary">El check-in en linea solo estara disponible para vuelos elegibles.</p>
-                @Html.RouteLink("Mis reservas", "MyReservations", null, new { @class = "btn btn-outline-primary" })
-            </div>
-        </section>
+        <p class="text-secondary">Pases emitidos para los tramos con check-in completado. Documento academico, no sustituye los controles aeroportuarios.</p>
+        foreach (var pase in Model.PasesAbordaje)
+        {
+            <article class="card boarding-pass shadow-sm mb-4" aria-label="Pase de abordar @pase.CodigoVuelo">
+                <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between gap-2">
+                    <strong>Aerolinea VIP</strong>
+                    <span>Reserva @pase.CodigoReserva</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4 align-items-center">
+                        <div class="col-12 col-md-8">
+                            <div class="boarding-pass__label">Pasajero</div>
+                            <h2 class="h4 mb-3">@pase.NombrePasajero</h2>
+                            <div class="row g-3">
+                                <div class="col-6"><div class="boarding-pass__label">Origen</div><strong>@pase.Origen</strong></div>
+                                <div class="col-6"><div class="boarding-pass__label">Destino</div><strong>@pase.Destino</strong></div>
+                                <div class="col-6"><div class="boarding-pass__label">Fecha</div><strong>@pase.FechaVuelo.ToString("ddd dd/MM/yyyy")</strong></div>
+                                <div class="col-6"><div class="boarding-pass__label">Horario</div><strong>@pase.HoraSalida - @pase.HoraLlegada</strong></div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4 text-md-center">
+                            <div class="boarding-pass__label">Vuelo</div>
+                            <div class="display-6 fw-bold text-primary">@pase.CodigoVuelo</div>
+                            <div class="boarding-pass__label mt-3">Asiento</div>
+                            <div class="display-5 fw-bold">@pase.Asiento</div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="d-flex flex-wrap justify-content-between gap-2 small text-secondary">
+                        <span>Documento: @pase.DocumentoEnmascarado</span>
+                        <span>Check-in: @pase.FechaCheckIn.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                </div>
+            </article>
+        }
     }
     else
     {
-        <section aria-labelledby="reservas-checkin-title">
-            <h2 id="reservas-checkin-title" class="h4 mb-3">Reservas de tu cuenta</h2>
-            <div class="row g-3">
-                @foreach (var reserva in Model.Reservas)
-                {
-                    <div class="col-12">
-                        <article class="card shadow-sm">
-                            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
-                                <h3 class="h5 mb-0">Reserva @reserva.CodigoReserva</h3>
-                                <span class="badge text-bg-light border">@reserva.EstadoReserva</span>
-                            </div>
-                            <div class="card-body">
-                                <p class="mb-2"><strong>Ruta:</strong> @reserva.Ruta</p>
-                                <p class="small text-secondary">El check-in requiere compra pagada y esta habilitado desde 24 horas antes hasta 60 minutos antes de la salida.</p>
-                                @if (reserva.Tramos != null && reserva.Tramos.Count > 0)
-                                {
-                                    <div class="table-responsive">
-                                        <table class="table table-sm align-middle mb-3">
-                                            <thead><tr><th scope="col">Vuelo</th><th scope="col">Ruta</th><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Pasajero</th><th scope="col">Asiento</th></tr></thead>
-                                            <tbody>
-                                                @foreach (var tramo in reserva.Tramos)
-                                                {
-                                                    <tr>
-                                                        <td>@tramo.CodigoVuelo</td>
-                                                        <td>@tramo.Ruta</td>
-                                                        <td>@tramo.Fecha.ToString("dd/MM/yyyy")</td>
-                                                        <td>@tramo.Horario</td>
-                                                        <td>@tramo.NombrePasajero</td>
-                                                        <td>@tramo.Asiento</td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                }
-                                @Html.RouteLink("Ver reserva", "ManageReservation", new { id = reserva.ReservaId }, new { @class = "btn btn-outline-secondary btn-sm" })
-                            </div>
-                        </article>
+        if (!string.IsNullOrWhiteSpace(Model.Mensaje))
+        {
+            <div class="alert alert-info" role="status">@Model.Mensaje</div>
+        }
+        using (Html.BeginForm("RegistrarCheckIn", "Interfaces", FormMethod.Post, new { @class = "card shadow-sm mb-4" }))
+        {
+            @Html.AntiForgeryToken()
+            <div class="card-body">
+                <h2 class="h5">Buscar reserva y pasajero</h2>
+                <p class="text-secondary">Se verifican titularidad, compra pagada, documento y ventana de salida (24 h antes hasta 60 min antes).</p>
+                <div class="row g-3">
+                    <div class="col-12 col-md-5">
+                        <label for="codigoReserva" class="form-label">Codigo de reserva</label>
+                        <input id="codigoReserva" name="codigoReserva" class="form-control" maxlength="20" required />
                     </div>
-                }
+                    <div class="col-12 col-md-5">
+                        <label for="documento" class="form-label">Documento del pasajero</label>
+                        <input id="documento" name="documento" class="form-control" minlength="5" maxlength="20" required />
+                    </div>
+                    <div class="col-12 col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Registrar</button>
+                    </div>
+                </div>
             </div>
-        </section>
+        }
+        if (Model.Reservas.Count == 0)
+        {
+            <section class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <h2 class="h5">No hay reservas confirmadas</h2>
+                    <p class="text-secondary">El check-in solo esta disponible para reservas pagadas dentro de la ventana habilitada.</p>
+                    @if (ViewBag.EsCounter != true)
+                    {
+                        @Html.RouteLink("Mis reservas", "MyReservations", null, new { @class = "btn btn-outline-primary" })
+                    }
+                </div>
+            </section>
+        }
+        else
+        {
+            <section aria-labelledby="reservas-checkin-title">
+                <h2 id="reservas-checkin-title" class="h4 mb-3">@(ViewBag.EsCounter == true ? "Reservas para asistencia" : "Reservas de tu cuenta")</h2>
+                <div class="row g-3">
+                    @foreach (var reserva in Model.Reservas)
+                    {
+                        <div class="col-12">
+                            <article class="card shadow-sm">
+                                <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <h3 class="h5 mb-0">Reserva @reserva.CodigoReserva</h3>
+                                    <span class="badge text-bg-light border">@reserva.EstadoReserva</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-2"><strong>Ruta:</strong> @reserva.Ruta</p>
+                                    <p class="small text-secondary">El check-in requiere compra pagada y esta habilitado desde 24 horas antes hasta 60 minutos antes de la salida.</p>
+                                    @if (reserva.Tramos != null && reserva.Tramos.Count > 0)
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle mb-3">
+                                                <thead><tr><th scope="col">Vuelo</th><th scope="col">Ruta</th><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Pasajero</th><th scope="col">Asiento</th></tr></thead>
+                                                <tbody>
+                                                    @foreach (var tramo in reserva.Tramos)
+                                                    {
+                                                        <tr>
+                                                            <td>@tramo.CodigoVuelo</td>
+                                                            <td>@tramo.Ruta</td>
+                                                            <td>@tramo.Fecha.ToString("dd/MM/yyyy")</td>
+                                                            <td>@tramo.Horario</td>
+                                                            <td>@tramo.NombrePasajero</td>
+                                                            <td>@tramo.Asiento</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    @Html.RouteLink("Ver reserva", "ManageReservation", new { id = reserva.ReservaId }, new { @class = "btn btn-outline-secondary btn-sm" })
+                                    @if (reserva.TienePasesAbordaje)
+                                    {
+                                        @Html.ActionLink("Ver e imprimir pases", "PasesAbordaje", "Interfaces", new { id = reserva.ReservaId }, new { @class = "btn btn-primary btn-sm ms-1" })
+                                    }
+                                </div>
+                            </article>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+        <p class="small text-secondary mt-3">Los pases se habilitan despues del check-in y son documentos academicos; no sustituyen los controles aeroportuarios.</p>
     }
-    <p class="small text-secondary mt-3">El registro es academico; no emite una tarjeta de embarque ni sustituye los controles aeroportuarios.</p>
 </main>

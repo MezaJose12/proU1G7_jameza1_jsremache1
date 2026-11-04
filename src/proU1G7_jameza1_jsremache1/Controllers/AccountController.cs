@@ -89,7 +89,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
                 case SignInStatus.Failure:
                 default:
-                    ModelState.AddModelError("", "Intento de inicio de sesión no válido.");
+                    ModelState.AddModelError("", "Intento de inicio de sesion no valido.");
                     return View(model);
             }
         }
@@ -137,7 +137,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     return View("Lockout");
                 case SignInStatus.Failure:
                 default:
-                    ModelState.AddModelError("", "Código no válido.");
+                    ModelState.AddModelError("", "Codigo no valido.");
                     return View(model);
             }
         }
@@ -147,6 +147,12 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
+            if (User.Identity.IsAuthenticated &&
+                (!User.IsInRole("Administrador") || User.IsInRole("SuperUsuario") || User.IsInRole("Counter")))
+            {
+                return new HttpStatusCodeResult(403);
+            }
+
             PrepararRolesDeRegistro();
             return View(new RegisterViewModel());
         }
@@ -157,18 +163,25 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Register(RegisterViewModel model)
         {
+            if (User.Identity.IsAuthenticated &&
+                (!User.IsInRole("Administrador") || User.IsInRole("SuperUsuario") || User.IsInRole("Counter")))
+            {
+                return new HttpStatusCodeResult(403);
+            }
+
             if (!ModelState.IsValid)
             {
                 PrepararRolesDeRegistro();
                 return View(model);
             }
 
-            var esSuperUsuario = User.Identity.IsAuthenticated && User.IsInRole("SuperUsuario");
-            var rol = esSuperUsuario ? model.RequestedRole : "Cliente";
+            var esAdministrador = User.Identity.IsAuthenticated && User.IsInRole("Administrador") &&
+                !User.IsInRole("SuperUsuario") && !User.IsInRole("Counter");
+            var rol = esAdministrador ? model.RequestedRole : "Cliente";
             var rolesPermitidos = new[] { "Cliente", "Counter", "Administrador", "SuperUsuario" };
             if (!rolesPermitidos.Contains(rol))
             {
-                ModelState.AddModelError("RequestedRole", "El rol seleccionado no es válido.");
+                ModelState.AddModelError("RequestedRole", "El rol seleccionado no es valido.");
                 PrepararRolesDeRegistro();
                 return View(model);
             }
@@ -184,7 +197,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 result = await UserManager.AddToRoleAsync(user.Id, rol);
                 if (result.Succeeded)
                 {
-                    if (!esSuperUsuario)
+                    if (!esAdministrador)
                     {
                         await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
                         StoreUserSession(user);
@@ -210,7 +223,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
         private void PrepararRolesDeRegistro()
         {
-            ViewBag.PuedeElegirRol = User.Identity.IsAuthenticated && User.IsInRole("SuperUsuario");
+            ViewBag.PuedeElegirRol = User.Identity.IsAuthenticated && User.IsInRole("Administrador") &&
+                !User.IsInRole("SuperUsuario") && !User.IsInRole("Counter");
             ViewBag.Roles = new SelectList(
                 new[] { "Cliente", "Counter", "Administrador", "SuperUsuario" },
                 "Cliente");
