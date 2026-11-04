@@ -1,6 +1,8 @@
 @model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
 @{
     ViewBag.Title = "Resultados de vuelos";
+    var puedeReservar = User.IsInRole("Cliente") ||
+        (User.IsInRole("Counter") && !string.IsNullOrWhiteSpace(Model.UsuarioReservaId));
 }
 <main class="container py-4" aria-labelledby="page-title">
     <header class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
@@ -9,7 +11,7 @@
             <h1 id="page-title" class="h2 fw-bold">Resultados de vuelos</h1>
             <p class="text-secondary mb-0">@Model.Origen -> @Model.Destino - @(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("dd/MM/yyyy") : "Fecha no seleccionada") - @Model.CantidadPasajeros pasajero(s)</p>
         </div>
-        @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros }, new { @class = "btn btn-outline-secondary" })
+        @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros, usuarioReservaId = Model.UsuarioReservaId }, new { @class = "btn btn-outline-secondary" })
     </header>
     @if (!string.IsNullOrWhiteSpace(Model.Mensaje))
     {
@@ -21,7 +23,7 @@
             <div class="display-6 text-primary mb-2" aria-hidden="true">></div>
             <h2 class="h5">No se encontraron vuelos ni itinerarios</h2>
             <p class="text-secondary">No mostramos horarios ficticios. Prueba otra fecha o modifica la ruta.</p>
-            @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros }, new { @class = "btn btn-primary" })
+            @Html.RouteLink("Modificar busqueda", "FlightSearch", new { origen = Model.Origen, destino = Model.Destino, fecha = Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("yyyy-MM-dd") : null, pasajeros = Model.CantidadPasajeros, usuarioReservaId = Model.UsuarioReservaId }, new { @class = "btn btn-primary" })
         </div></section>
     }
     else
@@ -40,9 +42,17 @@
                                     @Html.RouteLink("Consultar disponibilidad", "FlightAvailability", new { id = vuelo.VueloId }, new { @class = "btn btn-outline-primary btn-sm mb-1" })
                                     @if (vuelo.AsientosDisponibles >= Model.CantidadPasajeros)
                                     {
-                                        if (Request.IsAuthenticated)
+                                        if (puedeReservar)
                                         {
                                             @Html.RouteLink("Seleccionar vuelo", "SeatSelection", new { id = vuelo.VueloId }, new { @class = "btn btn-primary btn-sm mb-1" })
+                                        }
+                                        else if (User.IsInRole("Counter"))
+                                        {
+                                            <span class="d-block small text-secondary">Seleccione una cuenta de cliente en la busqueda para iniciar la reserva.</span>
+                                        }
+                                        else if (Request.IsAuthenticated)
+                                        {
+                                            <span class="d-block small text-secondary">Este rol puede consultar la disponibilidad, pero no iniciar reservas.</span>
                                         }
                                         else
                                         {
@@ -64,7 +74,7 @@
         if (Model.Itinerarios.Count > 0)
         {
             <section class="mt-4" aria-labelledby="itinerarios-title">
-                <h2 id="itinerarios-title" class="h4">Itinerarios completos a Galápagos</h2>
+                <h2 id="itinerarios-title" class="h4">Itinerarios completos a Galapagos</h2>
                 <p class="text-secondary">Los dos tramos se reservan juntos; cada pasajero selecciona un asiento distinto en cada vuelo.</p>
                 <div class="row g-3">
                     @foreach (var itinerario in Model.Itinerarios)
@@ -79,9 +89,17 @@
                                         }
                                     </p></div>
                                     <div class="text-md-end"><div class="fw-bold">@itinerario.TarifaTotal.ToString("N2") @itinerario.Moneda <small class="text-secondary fw-normal">por pasajero, todos los tramos</small></div><div class="small mb-2">@itinerario.AsientosDisponibles asientos disponibles en cada tramo</div>
-                                        @if (Request.IsAuthenticated)
+                                        @if (puedeReservar)
                                         {
                                             @Html.RouteLink("Elegir itinerario", "ItinerarySelect", new { id = itinerario.ItinerarioId }, new { @class = "btn btn-primary" })
+                                        }
+                                        else if (User.IsInRole("Counter"))
+                                        {
+                                            <span class="d-block small text-secondary">Seleccione una cuenta de cliente en la busqueda para reservar.</span>
+                                        }
+                                        else if (Request.IsAuthenticated)
+                                        {
+                                            <span class="d-block small text-secondary">Este rol puede consultar la disponibilidad, pero no reservar.</span>
                                         }
                                         else
                                         {

@@ -31,7 +31,7 @@
         <section class="card shadow-sm mb-4" aria-labelledby="modelo-@modelo.ModeloAeronaveId">
             <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div><h2 id="modelo-@modelo.ModeloAeronaveId" class="h5 mb-1">@modelo.Fabricante @modelo.Nombre</h2><span class="text-secondary small">@modelo.Asientoes.Count de @modelo.CapacidadAsientos posiciones configuradas</span></div>
-                @if (!modelo.Aeronaves.Any())
+                @if (!modelo.Aeronaves.Any() && User.IsInRole("Administrador"))
                 {
                     @Html.ActionLink("Agregar asiento", "Create", new { modeloAeronaveId = modelo.ModeloAeronaveId }, new { @class = "btn btn-sm btn-outline-primary" })
                 }
@@ -62,7 +62,7 @@
                                         if (asiento == null)
                                         {
                                             <div class="seat-position seat-empty">
-                                                @if (!modelo.Aeronaves.Any())
+                                                @if (!modelo.Aeronaves.Any() && User.IsInRole("Administrador"))
                                                 {
                                                     @Html.ActionLink("+ Agregar " + fila + lado, "Create", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = numero, fila = fila, lado = lado }, new { aria_label = "Configurar asiento " + fila + lado })
                                                 }
@@ -81,7 +81,10 @@
                                                 {
                                                     @Html.ActionLink("Editar", "Edit", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small" })
                                                     @Html.ActionLink("Detalle", "Details", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small" })
-                                                    @Html.ActionLink("Eliminar", "Delete", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small text-danger" })
+                                                    if (User.IsInRole("Administrador"))
+                                                    {
+                                                        @Html.ActionLink("Eliminar", "Delete", new { modeloAeronaveId = modelo.ModeloAeronaveId, numeroAsiento = asiento.NumeroAsiento }, new { @class = "small text-danger" })
+                                                    }
                                                 }
                                                 else
                                                 {

@@ -36,6 +36,14 @@
                         </select>
                         <div class="form-text">Capacidad maxima: 7 asientos.</div>
                     </div>
+                    @if (User.IsInRole("Counter"))
+                    {
+                        <div class="col-12 col-md-6">
+                            <label for="usuarioReservaId" class="form-label">Cuenta del cliente (opcional)</label>
+                            @Html.DropDownList("usuarioReservaId", Model.UsuariosReserva, "Sin cliente seleccionado", new { @class = "form-select", id = "usuarioReservaId" })
+                            <div class="form-text">Puede consultar vuelos sin elegir cuenta. Seleccione un cliente antes de iniciar una reserva asistida.</div>
+                        </div>
+                    }
                     <div class="col-12 d-flex flex-wrap gap-2">
                         <button type="submit" class="btn btn-primary">Buscar</button>
                         <a href="@Url.RouteUrl("FlightSearch")" class="btn btn-outline-secondary">Limpiar filtros</a>
@@ -77,7 +85,8 @@
             window.location.href = "@Url.RouteUrl("FlightSearch")?origen=" + encodeURIComponent(selectorOrigen.value)
                 + "&destino=" + encodeURIComponent(document.getElementById("destino").value)
                 + "&fecha=" + encodeURIComponent(document.getElementById("fecha").value)
-                + "&pasajeros=" + encodeURIComponent(document.getElementById("pasajeros").value);
+                + "&pasajeros=" + encodeURIComponent(document.getElementById("pasajeros").value)
+                + "&usuarioReservaId=" + encodeURIComponent(document.getElementById("usuarioReservaId") ? document.getElementById("usuarioReservaId").value : "");
         });
     }
 </script>

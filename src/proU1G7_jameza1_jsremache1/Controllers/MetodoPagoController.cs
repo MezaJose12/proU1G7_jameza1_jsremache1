@@ -11,7 +11,7 @@ using proU1G7_jameza1_jsremache1.Models;
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
     // CAMBIO: restringir los métodos de pago configurables a administradores.
-    [Authorize(Roles = "Administrador,SuperUsuario")]
+    [AutorizacionAdministrativa]
     public class MetodoPagoController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

@@ -11,7 +11,7 @@ using proU1G7_jameza1_jsremache1.Models;
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
     // CAMBIO: restringir la programación de vuelos al personal administrativo.
-    [Authorize(Roles = "Administrador,SuperUsuario")]
+    [AutorizacionAdministrativa]
     public class FrecuenciaController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();

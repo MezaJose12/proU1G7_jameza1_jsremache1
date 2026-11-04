@@ -5,11 +5,12 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Index</h2>
+<h2>Monedas</h2>
 
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
+@if (User.IsInRole("Administrador"))
+{
+    <p>@Html.ActionLink("Crear", "Create")</p>
+}
 <table class="table">
     <tr>
         <th>
@@ -24,9 +25,12 @@
             @Html.DisplayFor(modelItem => item.Descripcion)
         </td>
         <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.Codigo }) |
-            @Html.ActionLink("Details", "Details", new { id=item.Codigo }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.Codigo })
+            @Html.ActionLink("Editar", "Edit", new { id=item.Codigo })
+            @Html.ActionLink("Detalle", "Details", new { id=item.Codigo })
+            @if (User.IsInRole("Administrador"))
+            {
+                @Html.ActionLink("Eliminar", "Delete", new { id=item.Codigo })
+            }
         </td>
     </tr>
 }

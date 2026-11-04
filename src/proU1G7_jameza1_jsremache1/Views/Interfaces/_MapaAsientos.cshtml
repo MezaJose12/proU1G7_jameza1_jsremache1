@@ -1,4 +1,16 @@
 @model proU1G7_jameza1_jsremache1.Models.InterfacesViewModel
+<style>
+    .btn.seat-reserved, .btn.seat-reserved.disabled {
+        --bs-btn-color: #fff;
+        --bs-btn-bg: #6f42c1;
+        --bs-btn-border-color: #6f42c1;
+        --bs-btn-disabled-color: #fff;
+        --bs-btn-disabled-bg: #6f42c1;
+        --bs-btn-disabled-border-color: #6f42c1;
+        --bs-btn-disabled-opacity: 1;
+    }
+    .badge.seat-reserved { background-color: #6f42c1; }
+</style>
 <div class="card shadow-sm"><div class="card-body">
     <h2 class="h5">Cabina - @Model.ModeloAeronave</h2>
     <p class="small text-secondary">La proa se representa a la izquierda; los estados se expresan con color y texto.</p>
@@ -11,7 +23,8 @@
                     @foreach (var asiento in fila.OrderBy(a => a.Codigo.EndsWith("D") ? 0 : 1))
                     {
                         var estadoVisual = (asiento.EstadoVisual ?? string.Empty).ToUpperInvariant();
-                        var color = estadoVisual == "DISPONIBLE" ? "success" : estadoVisual == "RESERVADO" ? "secondary" : "danger";
+                        var color = estadoVisual == "DISPONIBLE" ? "success" : "danger";
+                        var claseEstado = estadoVisual == "RESERVADO" ? "seat-reserved" : "btn-" + color;
                         <div class="text-center">
                             @if (ViewBag.PuedeSeleccionar == true && asiento.Seleccionable && estadoVisual == "DISPONIBLE")
                             {
@@ -20,7 +33,7 @@
                             }
                             else
                             {
-                                <span class="btn btn-@color disabled" aria-label="Asiento @asiento.Codigo: @asiento.Estado"><strong>@asiento.Codigo</strong><span class="d-block small">@asiento.Estado</span></span>
+                                <span class="btn @claseEstado disabled" aria-label="Asiento @asiento.Codigo: @asiento.Estado"><strong>@asiento.Codigo</strong><span class="d-block small">@asiento.Estado</span></span>
                             }
                         </div>
                     }
@@ -31,7 +44,7 @@
     </div>
     <div class="d-flex flex-wrap gap-3 mt-3" aria-label="Leyenda de estados">
         <span><span class="badge text-bg-success">*</span> Disponible</span>
-        <span><span class="badge text-bg-secondary">*</span> Reservado</span>
+        <span><span class="badge seat-reserved">*</span> Reservado</span>
         <span><span class="badge text-bg-danger">*</span> Ocupado</span>
         @if (ViewBag.PuedeSeleccionar == true) { <span><span class="badge border border-dark text-success">OK</span> Su seleccion</span> }
     </div>

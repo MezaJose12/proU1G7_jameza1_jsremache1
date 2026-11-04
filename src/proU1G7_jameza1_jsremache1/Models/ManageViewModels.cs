@@ -28,14 +28,14 @@ namespace proU1G7_jameza1_jsremache1.Models
     public class SetPasswordViewModel
     {
         [Required]
-        [StringLength(100, ErrorMessage = "El número de caracteres de {0} debe ser al menos {2}.", MinimumLength = 6)]
+        [StringLength(100, ErrorMessage = "El numero de caracteres de {0} debe ser al menos {2}.", MinimumLength = 6)]
         [DataType(DataType.Password)]
-        [Display(Name = "Contraseña nueva")]
+        [Display(Name = "Contrasena nueva")]
         public string NewPassword { get; set; }
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirme la contraseña nueva")]
-        [Compare("NewPassword", ErrorMessage = "La contraseña nueva y la contraseña de confirmación no coinciden.")]
+        [Display(Name = "Confirme la contrasena nueva")]
+        [Compare("NewPassword", ErrorMessage = "La contrasena nueva y la contrasena de confirmacion no coinciden.")]
         public string ConfirmPassword { get; set; }
     }
 
@@ -43,18 +43,18 @@ namespace proU1G7_jameza1_jsremache1.Models
     {
         [Required]
         [DataType(DataType.Password)]
-        [Display(Name = "Contraseña actual")]
+        [Display(Name = "Contrasena actual")]
         public string OldPassword { get; set; }
 
         [Required]
-        [StringLength(100, ErrorMessage = "El número de caracteres de {0} debe ser al menos {2}.", MinimumLength = 6)]
+        [StringLength(100, ErrorMessage = "El numero de caracteres de {0} debe ser al menos {2}.", MinimumLength = 6)]
         [DataType(DataType.Password)]
-        [Display(Name = "Contraseña nueva")]
+        [Display(Name = "Contrasena nueva")]
         public string NewPassword { get; set; }
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirme la contraseña nueva")]
-        [Compare("NewPassword", ErrorMessage = "La contraseña nueva y la contraseña de confirmación no coinciden.")]
+        [Display(Name = "Confirme la contrasena nueva")]
+        [Compare("NewPassword", ErrorMessage = "La contrasena nueva y la contrasena de confirmacion no coinciden.")]
         public string ConfirmPassword { get; set; }
     }
 
@@ -62,19 +62,19 @@ namespace proU1G7_jameza1_jsremache1.Models
     {
         [Required]
         [Phone]
-        [Display(Name = "Número de teléfono")]
+        [Display(Name = "Numero de telefono")]
         public string Number { get; set; }
     }
 
     public class VerifyPhoneNumberViewModel
     {
         [Required]
-        [Display(Name = "Código")]
+        [Display(Name = "Codigo")]
         public string Code { get; set; }
 
         [Required]
         [Phone]
-        [Display(Name = "Número de teléfono")]
+        [Display(Name = "Numero de telefono")]
         public string PhoneNumber { get; set; }
     }
 

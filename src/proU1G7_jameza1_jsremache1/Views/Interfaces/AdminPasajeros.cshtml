@@ -28,7 +28,10 @@
                     <input class="form-control" id="busqueda" name="busqueda" value="@Model.Busqueda" minlength="3" maxlength="100" />
                 </div>
                 <div class="col-auto"><button type="submit" class="btn btn-primary">Buscar</button></div>
-                <div class="col-auto">@Html.ActionLink("Nuevo pasajero", "CrearPasajeroAdmin", "Interfaces", null, new { @class = "btn btn-outline-primary" })</div>
+                if (User.IsInRole("Administrador") || User.IsInRole("Counter"))
+                {
+                    <div class="col-auto">@Html.ActionLink("Nuevo pasajero", "CrearPasajeroAdmin", "Interfaces", null, new { @class = "btn btn-outline-primary" })</div>
+                }
             }
         </div>
     </section>

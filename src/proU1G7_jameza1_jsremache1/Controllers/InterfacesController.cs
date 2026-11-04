@@ -23,7 +23,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         private readonly AerolineaVIPEntities db = new AerolineaVIPEntities();
 
         [AllowAnonymous]
-        public ActionResult Buscar(string origen = null, string destino = null, DateTime? fecha = null, int pasajeros = 1)
+        public ActionResult Buscar(string origen = null, string destino = null, DateTime? fecha = null, int pasajeros = 1, string usuarioReservaId = null)
         {
             var model = new InterfacesViewModel
             {
@@ -32,6 +32,16 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 FechaViaje = fecha,
                 CantidadPasajeros = pasajeros >= 1 && pasajeros <= 7 ? pasajeros : 1
             };
+            if (User.IsInRole("Counter"))
+            {
+                model.UsuarioReservaId = usuarioReservaId;
+                model.UsuariosReserva = ObtenerUsuariosCliente(usuarioReservaId);
+                Session["UsuarioReservaId"] = EsUsuarioCliente(usuarioReservaId) ? usuarioReservaId : null;
+            }
+            else
+            {
+                Session["UsuarioReservaId"] = null;
+            }
             CargarAeropuertos(model);
             var aeropuerto = string.IsNullOrWhiteSpace(origen) ? null : BuscarAeropuerto(origen);
             CargarDestinos(model, aeropuerto == null ? (int?)null : aeropuerto.AeropuertoId);
@@ -40,12 +50,26 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [AllowAnonymous]
-        public ActionResult Resultados(string origen, string destino, DateTime? fecha, int pasajeros = 1)
+        public ActionResult Resultados(string origen, string destino, DateTime? fecha, int pasajeros = 1, string usuarioReservaId = null)
         {
+            if (User.IsInRole("Counter"))
+            {
+                if (!string.IsNullOrWhiteSpace(usuarioReservaId) && !EsUsuarioCliente(usuarioReservaId))
+                {
+                    return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+                }
+                Session["UsuarioReservaId"] = string.IsNullOrWhiteSpace(usuarioReservaId) ? null : usuarioReservaId;
+            }
+            else
+            {
+                Session["UsuarioReservaId"] = null;
+            }
+
             var model = new InterfacesViewModel
             {
                 Origen = origen,
                 Destino = destino,
+                UsuarioReservaId = User.IsInRole("Counter") ? usuarioReservaId : null,
                 FechaViaje = fecha,
                 CantidadPasajeros = pasajeros
             };
@@ -55,7 +79,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 || !fecha.HasValue || fecha.Value.Date < DateTime.Today || pasajeros < 1 || pasajeros > 7
                 || string.Equals(origen, destino, StringComparison.OrdinalIgnoreCase))
             {
-                model.Mensaje = "Indique un origen, destino, fecha válida y entre 1 y 7 pasajeros.";
+                model.Mensaje = "Indique un origen, destino, fecha valida y entre 1 y 7 pasajeros.";
                 return View("Resultados", model);
             }
 
@@ -150,9 +174,13 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("Asientos", CrearModeloAsientos(vuelo, false));
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult SeleccionarItinerario(int? id)
         {
+            if (!ValidarCuentaClienteCounter())
+            {
+                return RedirectToRoute("FlightSearch");
+            }
             if (!id.HasValue || id.Value <= 0)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
@@ -172,7 +200,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 tramos[0].Vuelo.FechaOperacion.Date,
                 pasajeros).Any(opcion => opcion.ItinerarioId == id.Value))
             {
-                TempData["Aviso"] = "El itinerario dejó de estar disponible o no cumple las condiciones de conexión.";
+                TempData["Aviso"] = "El itinerario dejo de estar disponible o no cumple las condiciones de conexion.";
                 return RedirectToRoute("FlightSearch");
             }
 
@@ -186,9 +214,13 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return RedirectToRoute("SeatSelection", new { id = vuelos[0] });
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult SeleccionarAsiento(int? id)
         {
+            if (!ValidarCuentaClienteCounter())
+            {
+                return RedirectToRoute("FlightSearch");
+            }
             if (!id.HasValue)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
@@ -224,10 +256,14 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult SeleccionarAsiento(int id, string[] asientos)
         {
+            if (!ValidarCuentaClienteCounter())
+            {
+                return RedirectToRoute("FlightSearch");
+            }
             ExpirarReservasVencidas();
             var vuelo = CargarVueloConAsientos(id);
             if (vuelo == null)
@@ -289,7 +325,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return RedirectToRoute("ReservaPasajeros");
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult Pasajeros()
         {
             var model = CrearModeloBorrador();
@@ -304,7 +340,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult Pasajeros(IList<PasajeroInterfazViewModel> pasajeros)
         {
@@ -340,7 +376,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     }
                     if (string.IsNullOrWhiteSpace(pasajeros[i].TipoDocumento) || !codigosDocumento.Contains(pasajeros[i].TipoDocumento))
                     {
-                        ModelState.AddModelError("pasajeros[" + i + "].TipoDocumento", "Seleccione un tipo de documento válido.");
+                        ModelState.AddModelError("pasajeros[" + i + "].TipoDocumento", "Seleccione un tipo de documento valido.");
                     }
                     if (string.IsNullOrWhiteSpace(pasajeros[i].Documento) || pasajeros[i].Documento.Trim().Length < 5 || pasajeros[i].Documento.Trim().Length > 20)
                     {
@@ -349,15 +385,15 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     else if (string.Equals(pasajeros[i].TipoDocumento, "CEDULA", StringComparison.OrdinalIgnoreCase)
                         && !CedulaEcuatoriana.EsValida(pasajeros[i].Documento.Trim()))
                     {
-                        ModelState.AddModelError("pasajeros[" + i + "].Documento", "Ingrese una cédula ecuatoriana válida de 10 dígitos.");
+                        ModelState.AddModelError("pasajeros[" + i + "].Documento", "Ingrese una cedula ecuatoriana valida de 10 digitos.");
                     }
                 }
 
                 if (pasajeros.Where(p => !string.IsNullOrWhiteSpace(p.Documento))
-                    .GroupBy(p => p.TipoDocumento + ":" + p.Documento.Trim(), StringComparer.OrdinalIgnoreCase)
-                    .Any(g => g.Count() > 1))
-                {
-                    ModelState.AddModelError("", "No repita el mismo documento en la operación.");
+                        .GroupBy(p => p.TipoDocumento + ":" + p.Documento.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .Any(g => g.Count() > 1))
+                    {
+                        ModelState.AddModelError("", "No repita el mismo documento en la operacion.");
                 }
             }
 
@@ -378,7 +414,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return RedirectToRoute("ReservaConfirmar");
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult Confirmar()
         {
             var borrador = CrearModeloBorrador();
@@ -395,7 +431,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult Confirmar(ReservaConfirmacionViewModel model, string continuar)
         {
@@ -413,7 +449,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var confirmacion = CrearModeloConfirmacion();
             if (model == null || confirmacion.Tramos.Count == 0 || confirmacion.Pasajeros.Count == 0)
             {
-                TempData["Aviso"] = "Completa la selección de vuelo y pasajeros antes de continuar.";
+                TempData["Aviso"] = "Completa la seleccion de vuelo y pasajeros antes de continuar.";
                 return RedirectToRoute("FlightSearch");
             }
 
@@ -440,6 +476,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             }
 
             LimpiarBorradorReserva();
+            Session["UsuarioReservaId"] = null;
             if (string.Equals(continuar, "pagar", StringComparison.OrdinalIgnoreCase))
             {
                 TempData["Aviso"] = "Reserva guardada. Completa el pago simulado dentro del plazo indicado en pantalla.";
@@ -461,7 +498,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 borrador == null || borrador.Pasajeros == null || !DatosPasajerosCompletos(borrador) ||
                 asientosPorTramo.Any(a => a.Count != borrador.Pasajeros.Count))
             {
-                error = "La selección de itinerario, asientos o pasajeros está incompleta. Inicia nuevamente la reserva.";
+                error = "La seleccion de itinerario, asientos o pasajeros esta incompleta. Inicia nuevamente la reserva.";
                 return null;
             }
 
@@ -483,7 +520,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 var tramos = itinerario == null ? new List<TramoItinerario>() : itinerario.TramoItinerarios.OrderBy(t => t.Orden).ToList();
                 if (tramos.Count != 2 || !tramos.Select(t => t.VueloId).SequenceEqual(vuelosIds))
                 {
-                    error = "El itinerario cambió o dejó de estar disponible. Busca nuevamente.";
+                    error = "El itinerario cambio o dejo de estar disponible. Busca nuevamente.";
                     return null;
                 }
 
@@ -508,7 +545,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     salidaSegunda < llegadaPrimera.AddMinutes(conexionMinima) || salidaPrimera <= ahora ||
                     (primeraRuta.AeropuertoOrigenId != aeropuertoGalapagosId && segundaRuta.AeropuertoDestinoId != aeropuertoGalapagosId))
                 {
-                    error = "El itinerario ya no cumple las condiciones de operación o conexión aprobadas.";
+                    error = "El itinerario ya no cumple las condiciones de operacion o conexion aprobadas.";
                     return null;
                 }
 
@@ -518,7 +555,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     !db.TipoComprobantes.Any(t => t.Codigo == "CONFIRMACION") ||
                     !db.EstadoComprobantes.Any(e => e.Codigo == "EMITIDO"))
                 {
-                    throw new InvalidOperationException("Faltan catálogos de reserva, compra o comprobante académico en AerolineaVIP.");
+                    throw new InvalidOperationException("Faltan catalogos de reserva, compra o comprobante academico en AerolineaVIP.");
                 }
 
                 var mapasAsientos = new List<Dictionary<string, Asiento>>();
@@ -542,7 +579,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                         .ToDictionary(a => a.Codigo, StringComparer.OrdinalIgnoreCase);
                     if (codigos.Any(codigo => !disponibles.ContainsKey(codigo)))
                     {
-                        error = "Un asiento del itinerario ya no está disponible. Selecciona de nuevo todos los tramos.";
+                        error = "Un asiento del itinerario ya no esta disponible. Selecciona de nuevo todos los tramos.";
                         return null;
                     }
 
@@ -564,7 +601,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
                 var reserva = new Reserva
                 {
-                    UsuarioId = User.Identity.GetUserId(),
+                    UsuarioId = ObtenerUsuarioReservaId(),
                     FechaCreacion = ahora,
                     FechaExpiracion = salidaPrimera < ahora.AddMinutes(LeerParametroPositivo("ReservaRetencionMinutos"))
                         ? salidaPrimera
@@ -739,7 +776,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
                 var reserva = new Reserva
                 {
-                    UsuarioId = User.Identity.GetUserId(),
+                    UsuarioId = ObtenerUsuarioReservaId(),
                     FechaCreacion = ahora,
                     FechaExpiracion = salidaVuelo < ahora.AddMinutes(LeerParametroPositivo("ReservaRetencionMinutos"))
                         ? salidaVuelo
@@ -834,7 +871,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 if (!db.EstadoReservas.Any(e => e.Codigo == "EXPIRADA") ||
                     !db.EstadoAsignacions.Any(e => e.Codigo == "LIBERADA"))
                 {
-                    throw new InvalidOperationException("Falta configurar EXPIRADA y LIBERADA en los catálogos de reservas.");
+                    throw new InvalidOperationException("Falta configurar EXPIRADA y LIBERADA en los catalogos de reservas.");
                 }
 
                 foreach (var reserva in vencidas)
@@ -947,7 +984,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             int valor;
             if (!int.TryParse(ConfigurationManager.AppSettings[clave], NumberStyles.None, CultureInfo.InvariantCulture, out valor) || valor <= 0)
             {
-                throw new InvalidOperationException("El parámetro " + clave + " debe ser un entero positivo en Web.config.");
+                throw new InvalidOperationException("El parametro " + clave + " debe ser un entero positivo en Web.config.");
             }
 
             return valor;
@@ -959,7 +996,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 (!reserva.FechaExpiracion.HasValue || reserva.FechaExpiracion.Value <= ahora);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult Pagar(int? id)
         {
             ExpirarReservasVencidas();
@@ -1004,7 +1041,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult Pagar(int id, PagoSimuladoViewModel model)
         {
@@ -1062,22 +1099,22 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             {
                 if (numero.Length != marca.LongitudNumero || !numero.All(char.IsDigit))
                 {
-                    ModelState.AddModelError("NumeroTarjeta", "El número no coincide con la longitud configurada para la marca seleccionada.");
+                    ModelState.AddModelError("NumeroTarjeta", "El numero no coincide con la longitud configurada para la marca seleccionada.");
                 }
                 if (string.IsNullOrEmpty(model.CodigoSeguridad) || model.CodigoSeguridad.Length != marca.LongitudCodigoSeguridad || !model.CodigoSeguridad.All(char.IsDigit))
                 {
-                    ModelState.AddModelError("CodigoSeguridad", "El código de seguridad no coincide con la longitud configurada para la marca seleccionada.");
+                    ModelState.AddModelError("CodigoSeguridad", "El codigo de seguridad no coincide con la longitud configurada para la marca seleccionada.");
                 }
             }
             DateTime vencimiento;
             if (!DateTime.TryParseExact(model.Vencimiento, "MM/yy", CultureInfo.InvariantCulture, DateTimeStyles.None, out vencimiento)
                 || vencimiento < new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1))
             {
-                ModelState.AddModelError("Vencimiento", "La tarjeta debe tener una fecha válida y no vencida.");
+                ModelState.AddModelError("Vencimiento", "La tarjeta debe tener una fecha valida y no vencida.");
             }
             if (metodo == null)
             {
-                ModelState.AddModelError("MetodoPagoCodigo", "Seleccione un método de pago activo.");
+                ModelState.AddModelError("MetodoPagoCodigo", "Seleccione un metodo de pago activo.");
             }
 
             model.ReservaId = modeloServidor.ReservaId;
@@ -1119,7 +1156,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 if (reserva.EstadoReservaCodigo != "PENDIENTE" || ReservaPendienteVencida(reserva, ahora))
                 {
                     transaction.Commit();
-                    TempData["Aviso"] = "La reserva ya no está pendiente o venció. Revisa tus reservas.";
+                    TempData["Aviso"] = "La reserva ya no esta pendiente o vencio. Revisa tus reservas.";
                     return RedirectToRoute("MyReservations");
                 }
 
@@ -1129,7 +1166,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     !db.EstadoPagoes.Any(e => e.Codigo == (pagoAprobado ? "APROBADO" : "RECHAZADO")) ||
                     !db.Monedas.Any(m => m.Codigo == "USD"))
                 {
-                    throw new InvalidOperationException("Faltan estados comerciales o la moneda USD en los catálogos de AerolineaVIP.");
+                    throw new InvalidOperationException("Faltan estados comerciales o la moneda USD en los catalogos de AerolineaVIP.");
                 }
 
                 var compra = compraExistente ?? new Compra
@@ -1169,8 +1206,8 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     CodigoOperacion = codigoOperacion,
                     EsSimulado = true,
                     MensajeResultado = pagoAprobado
-                        ? "Pago de demostración aprobado; no se realizó ningún cobro."
-                        : "Pago de demostración rechazado por la regla de prueba DP-06."
+                        ? "Pago de demostracion aprobado; no se realizo ningun cobro."
+                        : "Pago de demostracion rechazado por la regla de prueba DP-06."
                 });
 
                 if (pagoAprobado)
@@ -1194,15 +1231,15 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
             if (!pagoAprobado)
             {
-                TempData["Aviso"] = "Pago rechazado por la simulación. La reserva sigue pendiente; prueba con una tarjeta de datos ficticios que no termine en 0000.";
+                TempData["Aviso"] = "Pago rechazado por la simulacion. La reserva sigue pendiente; prueba con una tarjeta de datos ficticios que no termine en 0000.";
                 return RedirectToRoute("PurchasePay", new { id = reserva.ReservaId });
             }
 
-            TempData["Aviso"] = "Pago simulado confirmado y comprobante académico emitido. No se realizó ningún cobro.";
+            TempData["Aviso"] = "Pago simulado confirmado y comprobante academico emitido. No se realizo ningun cobro.";
             return RedirectToRoute("Receipts");
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult Confirmacion(int? id)
         {
             if (!id.HasValue)
@@ -1224,12 +1261,12 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("Confirmacion", CrearModeloReserva(reserva));
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente")]
         public ActionResult MisReservas(string estado = null)
         {
             ExpirarReservasVencidas();
             var usuarioId = User.Identity.GetUserId();
-            var puedeConsultarTodas = User.IsInRole("Counter") || User.IsInRole("view");
+            var puedeConsultarTodas = false;
             var reservas = db.Reservas
                 .Include("EstadoReserva")
                 .Include("Compras.EstadoCompra")
@@ -1248,10 +1285,30 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 model.Reservas.Add(CrearModeloReserva(reserva));
             }
 
+            ViewBag.EsPanelAdministrativo = false;
             return View("MisReservas", model);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
+        public ActionResult AdminReservas(string estado = null)
+        {
+            ExpirarReservasVencidas();
+            var reservas = db.Reservas
+                .Include("EstadoReserva")
+                .Include("Compras.EstadoCompra")
+                .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia.Ruta")
+                .OrderByDescending(r => r.FechaCreacion)
+                .ToList();
+            var model = new InterfacesViewModel();
+            foreach (var reserva in reservas.Where(r => string.IsNullOrWhiteSpace(estado) || r.EstadoReservaCodigo == estado))
+            {
+                model.Reservas.Add(CrearModeloReserva(reserva));
+            }
+            ViewBag.EsPanelAdministrativo = true;
+            return View("MisReservas", model);
+        }
+
+        [Authorize(Roles = "Cliente,Counter,Administrador,SuperUsuario")]
         public ActionResult Gestionar(int? id)
         {
             ExpirarReservasVencidas();
@@ -1271,7 +1328,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
         // CAMBIO: aplica DP-08 aprobada; los reembolsos son notas de crédito académicas, nunca movimientos de dinero.
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Cliente")]
         [ValidateAntiForgeryToken]
         public ActionResult SolicitarCancelacion(int id)
         {
@@ -1399,12 +1456,12 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                     db.SaveChanges();
                     transaction.Commit();
                     TempData["Aviso"] = "Reserva cancelada. Reembolso simulado " + porcentajeReembolso + "%: " +
-                        importeReembolsado.ToString("N2") + " " + compraPagada.MonedaCodigo + ". Nota de crédito académica " + numeroNotaCredito + ". No se movió dinero real.";
+                        importeReembolsado.ToString("N2") + " " + compraPagada.MonedaCodigo + ". Nota de credito academica " + numeroNotaCredito + ". No se movio dinero real.";
                 }
                 else
                 {
                     transaction.Commit();
-                    TempData["Aviso"] = "La reserva ya no permite cancelación o no tiene un pago aprobado.";
+                    TempData["Aviso"] = "La reserva ya no permite cancelacion o no tiene un pago aprobado.";
                 }
             }
 
@@ -1439,17 +1496,18 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return comprobante.NumeroComprobante;
         }
 
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         public ActionResult CheckIn()
         {
             ExpirarReservasVencidas();
             var usuarioId = User.Identity.GetUserId();
+            var puedeConsultarTodas = User.IsInRole("Counter");
             var model = new InterfacesViewModel { Mensaje = TempData["Aviso"] as string };
             var reservas = db.Reservas
                 .Include("EstadoReserva")
                 .Include("Compras.EstadoCompra")
                 .Include("ReservaPasajeroVueloes.Vuelo.Frecuencia.Ruta")
-                .Where(r => r.UsuarioId == usuarioId &&
+                .Where(r => (r.UsuarioId == usuarioId || puedeConsultarTodas) &&
                     (r.EstadoReservaCodigo == "CONFIRMADA" || r.EstadoReservaCodigo == "SOLICITUD_CANCELACION"))
                 .OrderByDescending(r => r.FechaCreacion)
                 .ToList();
@@ -1457,12 +1515,84 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             {
                 model.Reservas.Add(CrearModeloReserva(reserva));
             }
+            ViewBag.EsCounter = puedeConsultarTodas;
+            return View("CheckIn", model);
+        }
+
+        [Authorize(Roles = "Cliente,Counter")]
+        public ActionResult PasesAbordaje(int id)
+        {
+            if (id <= 0)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+
+            var usuarioId = User.Identity.GetUserId();
+            var puedeConsultarTodas = User.IsInRole("Counter");
+            var reserva = db.Reservas
+                .Include("Compras.Pagoes")
+                .FirstOrDefault(r => r.ReservaId == id &&
+                    (r.UsuarioId == usuarioId || puedeConsultarTodas));
+            if (reserva == null ||
+                (reserva.EstadoReservaCodigo != "CONFIRMADA" && reserva.EstadoReservaCodigo != "SOLICITUD_CANCELACION") ||
+                !reserva.Compras.Any(c => c.EstadoCompraCodigo == "PAGADA" && c.Pagoes.Any(p => p.EstadoPagoCodigo == "APROBADO")))
+            {
+                return HttpNotFound();
+            }
+
+            var asignaciones = db.ReservaPasajeroVueloes
+                .Include("Pasajero")
+                .Include("Vuelo.Frecuencia.Ruta")
+                .Include("Vuelo.Aeronave.ModeloAeronave.Asientoes")
+                .Include("CheckIns")
+                .Where(a => a.ReservaId == id && a.EstadoAsignacionCodigo == "CONFIRMADA" &&
+                    a.CheckIns.Any(c => c.EstadoCheckInCodigo == "COMPLETADO"))
+                .ToList()
+                .OrderBy(a => a.Vuelo.FechaOperacion)
+                .ThenBy(a => a.Vuelo.Frecuencia.HoraSalida)
+                .ThenBy(a => a.Pasajero.Apellidos)
+                .ToList();
+            if (asignaciones.Count == 0)
+            {
+                TempData["Aviso"] = "Registre el check-in antes de imprimir el pase de abordar.";
+                return RedirectToAction("CheckIn");
+            }
+
+            var pases = new List<PaseAbordajeViewModel>();
+            foreach (var asignacion in asignaciones)
+            {
+                var ruta = asignacion.Vuelo.Frecuencia.Ruta;
+                var origen = db.Aeropuertoes.Find(ruta.AeropuertoOrigenId);
+                var destino = db.Aeropuertoes.Find(ruta.AeropuertoDestinoId);
+                var asiento = asignacion.Vuelo.Aeronave.ModeloAeronave.Asientoes
+                    .FirstOrDefault(a => a.NumeroAsiento == asignacion.NumeroAsiento);
+                var checkIn = asignacion.CheckIns
+                    .Where(c => c.EstadoCheckInCodigo == "COMPLETADO")
+                    .OrderByDescending(c => c.FechaRegistro)
+                    .First();
+                pases.Add(new PaseAbordajeViewModel
+                {
+                    CodigoReserva = reserva.CodigoReserva,
+                    NombrePasajero = asignacion.Pasajero.Nombres + " " + asignacion.Pasajero.Apellidos,
+                    DocumentoEnmascarado = EnmascararDocumento(asignacion.Pasajero.NumeroDocumento),
+                    CodigoVuelo = "VIP" + asignacion.VueloId.ToString("D5", CultureInfo.InvariantCulture),
+                    Origen = origen.Localidad + " (" + origen.CodigoIATA + ")",
+                    Destino = destino.Localidad + " (" + destino.CodigoIATA + ")",
+                    FechaVuelo = asignacion.Vuelo.FechaOperacion,
+                    HoraSalida = asignacion.Vuelo.Frecuencia.HoraSalida.ToString(@"hh\:mm"),
+                    HoraLlegada = asignacion.Vuelo.Frecuencia.HoraLlegada.ToString(@"hh\:mm"),
+                    Asiento = asiento == null ? asignacion.NumeroAsiento.ToString(CultureInfo.InvariantCulture) : asiento.Codigo,
+                    FechaCheckIn = checkIn.FechaRegistro
+                });
+            }
+
+            var model = new InterfacesViewModel { PasesAbordaje = pases };
             return View("CheckIn", model);
         }
 
         // CAMBIO: aplica DP-12 validando titularidad, pago aprobado, ventana horaria y duplicados en servidor.
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Cliente,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult RegistrarCheckIn(string codigoReserva, string documento)
         {
@@ -1471,7 +1601,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var numeroDocumento = (documento ?? string.Empty).Trim();
             if (codigo.Length == 0 || numeroDocumento.Length < 5 || numeroDocumento.Length > 20)
             {
-                TempData["Aviso"] = "Ingrese el código de reserva y un documento válido.";
+                TempData["Aviso"] = "Ingrese el codigo de reserva y un documento valido.";
                 return RedirectToAction("CheckIn");
             }
 
@@ -1487,7 +1617,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 (reserva.EstadoReservaCodigo != "CONFIRMADA" && reserva.EstadoReservaCodigo != "SOLICITUD_CANCELACION") ||
                 !reserva.Compras.Any(c => c.EstadoCompraCodigo == "PAGADA" && c.Pagoes.Any(p => p.EstadoPagoCodigo == "APROBADO")))
             {
-                TempData["Aviso"] = "No se encontró una reserva confirmada y pagada para esos datos.";
+                TempData["Aviso"] = "No se encontro una reserva confirmada y pagada para esos datos.";
                 return RedirectToAction("CheckIn");
             }
 
@@ -1526,7 +1656,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 if (estadoActual != "CONFIRMADA" && estadoActual != "SOLICITUD_CANCELACION")
                 {
                     transaction.Commit();
-                    TempData["Aviso"] = "La reserva cambió de estado y ya no permite el check-in.";
+                    TempData["Aviso"] = "La reserva cambio de estado y ya no permite el check-in.";
                     return RedirectToAction("CheckIn");
                 }
 
@@ -1586,7 +1716,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             if (!db.TipoComprobantes.Any(t => t.Codigo == "CONFIRMACION") ||
                 !db.EstadoComprobantes.Any(e => e.Codigo == "EMITIDO"))
             {
-                throw new InvalidOperationException("Faltan los catálogos de confirmación académica; ejecute la migración de políticas aprobadas.");
+                throw new InvalidOperationException("Faltan los catalogos de confirmacion academica; ejecute la migracion de politicas aprobadas.");
             }
 
             var comprobante = new Comprobante
@@ -1624,7 +1754,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 db.TipoComprobantes.Add(new TipoComprobante
                 {
                     Codigo = "FACTURA",
-                    Descripcion = "Comprobante de venta académico (sin validez tributaria)"
+                    Descripcion = "Comprobante de venta academico (sin validez tributaria)"
                 });
             }
             if (!db.EstadoComprobantes.Any(e => e.Codigo == "EMITIDO"))
@@ -1695,18 +1825,23 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("ImprimirComprobante", comprobante);
         }
 
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         public ActionResult AdminIndex()
         {
             return View("AdminIndex", new InterfacesViewModel());
         }
 
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         public ActionResult AdminVuelos()
         {
             ViewBag.TitleModulo = "Vuelos, rutas y frecuencias";
             ViewBag.NumeroPantalla = 18;
             var model = ObtenerResumenAdministrativo();
+            if (User.IsInRole("Counter"))
+            {
+                model.AccesosAdministrativos.Add(Acceso("Vuelos programados", "Consulte vuelos y sus detalles. La edicion y programacion estan reservadas a Administrador y SuperUsuario.", "Vuelo", "Index"));
+                return View("AdminModulo", model);
+            }
             foreach (var acceso in new[]
             {
                 Acceso("1. Aeropuertos", "Registre primero cada aeropuerto con su codigo IATA de tres letras.", "Aeropuerto", "Index"),
@@ -1739,19 +1874,24 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("AdminModulo", model);
         }
 
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         public ActionResult AdminGestion()
         {
-            ViewBag.TitleModulo = "Gestión operativa";
+            ViewBag.TitleModulo = "Gestion operativa";
             ViewBag.NumeroPantalla = 20;
             var model = ObtenerResumenAdministrativo();
-            foreach (var acceso in new[]
+            var accesos = new List<AccesoAdministrativoViewModel>
             {
                 Acceso("Pasajeros", "Buscar, consultar y corregir los datos vinculados a reservas existentes.", "Interfaces", "AdminPasajeros"),
-                Acceso("Reservas", "Consultar reservas persistidas y gestionar solicitudes autorizadas.", "Interfaces", "MisReservas"),
-                Acceso("Tipos de documento", "Administrar el catálogo habilitado.", "TipoDocumentoIdentidads", "Index"),
-                Acceso("Usuarios", "SuperUsuario puede asignar roles operativos Cliente y Counter.", User.IsInRole("SuperUsuario") ? "Interfaces" : null, User.IsInRole("SuperUsuario") ? "AdminUsuarios" : null)
-            })
+                Acceso("Reservas", "Consultar reservas registradas desde el panel administrativo.", "Interfaces", "AdminReservas"),
+                Acceso("Usuarios", User.IsInRole("Administrador") ? "Consultar cuentas y asignar los roles Cliente y Counter." : "Consultar cuentas; la creacion de usuarios y la asignacion de roles son exclusivas de Administrador.", "Interfaces", "AdminUsuarios"),
+                Acceso("Comprobantes", "Consultar comprobantes de las compras registradas.", "Interfaces", "Comprobantes")
+            };
+            if (!User.IsInRole("Counter"))
+            {
+                accesos.Add(Acceso("Tipos de documento", "Administrar el catalogo habilitado.", "TipoDocumentoIdentidads", "Index"));
+            }
+            foreach (var acceso in accesos)
             {
                 model.AccesosAdministrativos.Add(acceso);
             }
@@ -1759,7 +1899,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         // CAMBIO: el personal autorizado consulta y corrige pasajeros sin borrar su historial de reservas.
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         public ActionResult AdminPasajeros(string busqueda = null)
         {
             var model = CrearModeloAdministracionPasajeros(busqueda);
@@ -1793,7 +1933,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("AdminPasajeros", model);
         }
 
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,Counter")]
         public ActionResult CrearPasajeroAdmin(string busqueda = null)
         {
             var model = CrearModeloAdministracionPasajeros(busqueda);
@@ -1802,7 +1942,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult CrearPasajeroAdmin(AdministracionPasajerosViewModel model)
         {
@@ -1840,7 +1980,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return View("AdminPasajeros", model);
         }
 
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         public ActionResult EditarPasajeroAdmin(int? id)
         {
             if (!id.HasValue)
@@ -1869,7 +2009,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Administrador,SuperUsuario")]
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         [ValidateAntiForgeryToken]
         public ActionResult EditarPasajeroAdmin(AdministracionPasajerosViewModel model)
         {
@@ -1948,12 +2088,12 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             }
             if (!db.TipoDocumentoIdentidads.Any(t => t.Codigo == formulario.TipoDocumentoCodigo))
             {
-                ModelState.AddModelError("Formulario.TipoDocumentoCodigo", "El tipo de documento seleccionado no está disponible.");
+                ModelState.AddModelError("Formulario.TipoDocumentoCodigo", "El tipo de documento seleccionado no esta disponible.");
             }
             if (db.Pasajeroes.Any(p => p.TipoDocumentoCodigo == formulario.TipoDocumentoCodigo &&
                 p.NumeroDocumento == formulario.NumeroDocumento && p.PasajeroId != formulario.PasajeroId))
             {
-                ModelState.AddModelError("Formulario.NumeroDocumento", "Ya existe un pasajero con ese tipo y número de documento.");
+                ModelState.AddModelError("Formulario.NumeroDocumento", "Ya existe un pasajero con ese tipo y numero de documento.");
             }
         }
 
@@ -1998,19 +2138,21 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 "UPDATE dbo.RevisionOperativa SET Estado = 'RESUELTA', FechaResolucion = SYSDATETIME() " +
                 "WHERE RevisionOperativaId = @p0 AND Estado = 'PENDIENTE'", id);
             TempData["Aviso"] = afectadas == 1
-                ? "La incidencia se marcó como revisada."
+                ? "La incidencia se marco como revisada."
                 : "La incidencia ya no estaba pendiente o no existe.";
             return RedirectToAction("AdminRevisiones");
         }
 
-        // CAMBIO: Identity almacena usuarios y roles; solo SuperUsuario administra roles operativos.
-        [Authorize(Roles = "SuperUsuario")]
+        // Identity almacena usuarios y roles; solo Administrador crea cuentas y asigna roles.
+        [Authorize(Roles = "Administrador,SuperUsuario,Counter")]
         public ActionResult AdminUsuarios()
         {
             ViewBag.TitleModulo = "Usuarios y roles";
             ViewBag.NumeroPantalla = 20;
             var model = ObtenerResumenAdministrativo();
             ViewBag.Aviso = TempData["Aviso"] as string;
+            ViewBag.PuedeCrearUsuarios = User.IsInRole("Administrador") &&
+                !User.IsInRole("SuperUsuario") && !User.IsInRole("Counter");
             using (var identityDb = new ApplicationDbContext())
             using (var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb)))
             {
@@ -2023,7 +2165,9 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                         Nombre = usuario.UserName,
                         Correo = usuario.Email,
                         Roles = string.Join(", ", roles),
-                        EsEditable = usuario.Id != User.Identity.GetUserId() && roles.All(r => r == "Cliente" || r == "Counter")
+                        RolAsignable = roles.FirstOrDefault(r => r == "Cliente" || r == "Counter" || r == "Administrador" || r == "SuperUsuario") ?? "Cliente",
+                        EsEditable = User.IsInRole("Administrador") && !User.IsInRole("SuperUsuario") &&
+                            !User.IsInRole("Counter") && usuario.Id != User.Identity.GetUserId()
                     });
                 }
             }
@@ -2032,11 +2176,17 @@ namespace proU1G7_jameza1_jsremache1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "SuperUsuario")]
+        [Authorize(Roles = "Administrador")]
         [ValidateAntiForgeryToken]
         public ActionResult CambiarRolUsuario(string id, string rol)
         {
-            if (string.IsNullOrWhiteSpace(id) || (rol != "Cliente" && rol != "Counter"))
+            if (User.IsInRole("SuperUsuario") || User.IsInRole("Counter"))
+            {
+                return new HttpStatusCodeResult(403);
+            }
+
+            var rolesPermitidos = new[] { "Cliente", "Counter", "Administrador", "SuperUsuario" };
+            if (string.IsNullOrWhiteSpace(id) || !rolesPermitidos.Contains(rol))
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
@@ -2057,13 +2207,6 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 }
 
                 var rolesActuales = userManager.GetRoles(usuario.Id);
-                if (rolesActuales.Any(r => r != "Cliente" && r != "Counter"))
-                {
-                    TempData["Aviso"] = "Las cuentas administrativas solo se cambian mediante la configuración local de inicio.";
-                    transaction.Commit();
-                    return RedirectToAction("AdminUsuarios");
-                }
-
                 if (!userManager.IsInRole(usuario.Id, rol))
                 {
                     VerificarResultadoIdentity(userManager.AddToRole(usuario.Id, rol), "asignar el rol " + rol);
@@ -2074,11 +2217,11 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 }
 
                 // CAMBIO: fuerza la renovación de las cookies Identity al cambiar permisos del usuario.
-                VerificarResultadoIdentity(userManager.UpdateSecurityStamp(usuario.Id), "invalidar la sesión anterior");
+                VerificarResultadoIdentity(userManager.UpdateSecurityStamp(usuario.Id), "invalidar la sesion anterior");
                 transaction.Commit();
             }
 
-            TempData["Aviso"] = "Rol actualizado. El usuario debe iniciar sesión nuevamente para renovar su sesión y permisos.";
+            TempData["Aviso"] = "Rol actualizado. El usuario debe iniciar sesion nuevamente para renovar su sesion y permisos.";
             return RedirectToAction("AdminUsuarios");
         }
 
@@ -2100,7 +2243,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             if ((desde.HasValue && hasta.HasValue && desde.Value.Date > hasta.Value.Date) ||
                 (hasta.HasValue && hasta.Value.Date == DateTime.MaxValue.Date))
             {
-                model.ReporteAviso = "El rango de fechas no es válido.";
+                model.ReporteAviso = "El rango de fechas no es valido.";
                 return View("Reportes", model);
             }
 
@@ -2414,7 +2557,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
             if (vuelo.Aeronave == null)
             {
-                model.Mensaje = "Este vuelo aún no tiene aeronave asignada y no puede comercializarse.";
+                model.Mensaje = "Este vuelo aun no tiene aeronave asignada y no puede comercializarse.";
                 return model;
             }
 
@@ -2460,7 +2603,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
 
             if (!permiteSeleccion)
             {
-                model.Mensaje = "La selección de la pantalla siguiente es temporal; el servidor volverá a comprobar los asientos.";
+                model.Mensaje = "La seleccion de la pantalla siguiente es temporal; el servidor volvera a comprobar los asientos.";
             }
 
             return model;
@@ -2594,10 +2737,76 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             return confirmacion;
         }
 
+        private bool ValidarCuentaClienteCounter()
+        {
+            if (User.IsInRole("Counter") && !EsUsuarioCliente(Session["UsuarioReservaId"] as string))
+            {
+                TempData["Aviso"] = "Seleccione una cuenta de cliente en la busqueda antes de iniciar una reserva.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private string ObtenerUsuarioReservaId()
+        {
+            if (!User.IsInRole("Counter"))
+            {
+                return User.Identity.GetUserId();
+            }
+
+            var usuarioReservaId = Session["UsuarioReservaId"] as string;
+            if (!EsUsuarioCliente(usuarioReservaId))
+            {
+                throw new InvalidOperationException("Seleccione una cuenta Cliente valida antes de registrar la reserva.");
+            }
+
+            return usuarioReservaId;
+        }
+
+        private bool EsUsuarioCliente(string usuarioId)
+        {
+            if (string.IsNullOrWhiteSpace(usuarioId))
+            {
+                return false;
+            }
+
+            using (var identityDb = new ApplicationDbContext())
+            using (var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb)))
+            {
+                return userManager.IsInRole(usuarioId, "Cliente") &&
+                    !userManager.IsInRole(usuarioId, "Administrador") &&
+                    !userManager.IsInRole(usuarioId, "SuperUsuario") &&
+                    !userManager.IsInRole(usuarioId, "Counter");
+            }
+        }
+
+        private IList<SelectListItem> ObtenerUsuariosCliente(string usuarioSeleccionadoId)
+        {
+            using (var identityDb = new ApplicationDbContext())
+            using (var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb)))
+            {
+                return identityDb.Users
+                    .ToList()
+                    .Where(u => userManager.IsInRole(u.Id, "Cliente") &&
+                        !userManager.IsInRole(u.Id, "Administrador") &&
+                        !userManager.IsInRole(u.Id, "SuperUsuario") &&
+                        !userManager.IsInRole(u.Id, "Counter"))
+                    .OrderBy(u => u.UserName)
+                    .Select(u => new SelectListItem
+                    {
+                        Value = u.Id,
+                        Text = string.IsNullOrWhiteSpace(u.Email) ? u.UserName : u.UserName + " (" + u.Email + ")",
+                        Selected = u.Id == usuarioSeleccionadoId
+                    })
+                    .ToList();
+            }
+        }
+
         private Reserva ObtenerReservaPropia(int reservaId)
         {
             var usuarioId = User.Identity.GetUserId();
-            var puedeAsistir = User.IsInRole("Counter") || User.IsInRole("view");
+            var puedeAsistir = User.IsInRole("Counter") || User.IsInRole("Administrador") || User.IsInRole("SuperUsuario");
             return db.Reservas
                 .Include("EstadoReserva")
                 .Include("ReservaPasajeroVueloes.Pasajero")
@@ -2619,7 +2828,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
             var tieneCheckIn = db.CheckIns.Any(c => c.EstadoCheckInCodigo == "COMPLETADO" &&
                 c.ReservaPasajeroVuelo.ReservaId == reserva.ReservaId);
             var puedeCancelarPendiente = reserva.EstadoReservaCodigo == "PENDIENTE" &&
-                !ReservaPendienteVencida(reserva, ahora) && (User.IsInRole("Counter") || reserva.UsuarioId == User.Identity.GetUserId());
+                !ReservaPendienteVencida(reserva, ahora) && User.IsInRole("Cliente") && reserva.UsuarioId == User.Identity.GetUserId();
             var puedeCancelarPagada = false;
             var politicaCancelacion = "Las reservas expiradas, canceladas o con check-in no se pueden cancelar.";
             if (esCompraPagada && primeraAsignacion != null)
@@ -2633,10 +2842,10 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 puedeCancelarPagada = (reserva.EstadoReservaCodigo == "CONFIRMADA" || reserva.EstadoReservaCodigo == "SOLICITUD_CANCELACION") &&
                     reserva.UsuarioId == User.Identity.GetUserId() && !User.IsInRole("Counter") && !tieneCheckIn && horasRestantes >= minimo;
                 politicaCancelacion = tieneCheckIn
-                    ? "No se puede cancelar: ya se registró check-in."
+                    ? "No se puede cancelar: ya se registro check-in."
                     : horasRestantes < minimo
                         ? "No se puede cancelar: se requieren al menos " + minimo + " horas antes del primer tramo."
-                        : "Cancelación completa permitida. Reembolso simulado " + porcentaje + "%: " + reembolso.ToString("N2") + " " + compra.MonedaCodigo + ".";
+                        : "Cancelacion completa permitida. Reembolso simulado " + porcentaje + "%: " + reembolso.ToString("N2") + " " + compra.MonedaCodigo + ".";
             }
             var model = new ReservaInterfazViewModel
             {
@@ -2650,6 +2859,7 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 EsCompraPagada = esCompraPagada,
                 PoliticaCancelacion = politicaCancelacion,
                 PermitePago = reserva.EstadoReservaCodigo == "PENDIENTE" && !ReservaPendienteVencida(reserva, ahora),
+                TienePasesAbordaje = db.CheckIns.Any(c => c.EstadoCheckInCodigo == "COMPLETADO" && c.ReservaPasajeroVuelo.ReservaId == reserva.ReservaId),
                 PermiteCancelar = puedeCancelarPendiente || puedeCancelarPagada,
                 Importe = compra == null ? asignaciones.Sum(a => a.ImporteTramo) : compra.Importe,
                 Moneda = compra == null ? "USD" : compra.MonedaCodigo
@@ -2724,6 +2934,93 @@ namespace proU1G7_jameza1_jsremache1.Controllers
                 db.Dispose();
             }
             base.Dispose(disposing);
+        }
+    }
+
+    public sealed class AutorizacionAdministrativaAttribute : AuthorizeAttribute
+    {
+        private readonly bool permitirCounter;
+
+        public AutorizacionAdministrativaAttribute(bool permitirCounter = false)
+        {
+            this.permitirCounter = permitirCounter;
+            Roles = permitirCounter
+                ? "Administrador,SuperUsuario,Counter"
+                : "Administrador,SuperUsuario";
+        }
+
+        public override void OnAuthorization(AuthorizationContext filterContext)
+        {
+            base.OnAuthorization(filterContext);
+            if (filterContext.Result != null)
+            {
+                return;
+            }
+
+            var action = filterContext.ActionDescriptor.ActionName;
+            var usuario = filterContext.HttpContext.User;
+            var esSuperUsuario = usuario.IsInRole("SuperUsuario");
+            var esCounter = usuario.IsInRole("Counter");
+            var esAdministrador = usuario.IsInRole("Administrador") && !esSuperUsuario && !esCounter;
+
+            if (esCounter && !esSuperUsuario && !esAdministrador)
+            {
+                if (!permitirCounter ||
+                    (!string.Equals(action, "Index", StringComparison.OrdinalIgnoreCase) &&
+                     !string.Equals(action, "Details", StringComparison.OrdinalIgnoreCase)))
+                {
+                    filterContext.Result = new HttpStatusCodeResult(403);
+                }
+                return;
+            }
+
+            if (!esAdministrador &&
+                (string.Equals(action, "Create", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(action, "Delete", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(action, "Generar", StringComparison.OrdinalIgnoreCase)))
+            {
+                filterContext.Result = new HttpStatusCodeResult(403);
+                return;
+            }
+
+            if (esSuperUsuario && !esAdministrador &&
+                string.Equals(action, "Edit", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(filterContext.HttpContext.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase) &&
+                SolicitaDesactivacion(filterContext.HttpContext.Request))
+            {
+                filterContext.Result = new HttpStatusCodeResult(403);
+            }
+        }
+
+        private static bool SolicitaDesactivacion(System.Web.HttpRequestBase request)
+        {
+            foreach (var nombreCampo in new[]
+            {
+                "Activa", "Activo", "EstadoVueloCodigo", "EstadoAeronaveCodigo", "EstadoItinerarioCodigo"
+            })
+            {
+                var valores = request.Form.GetValues(nombreCampo);
+                if (valores == null || valores.Length == 0)
+                {
+                    continue;
+                }
+
+                var valor = (valores[0] ?? string.Empty).Trim();
+                bool activo;
+                if ((bool.TryParse(valor, out activo) && !activo) ||
+                    string.Equals(valor, "0", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(valor, "NO_DISPONIBLE", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(valor, "INACTIVO", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(valor, "CANCELADO", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(valor, "CANCELADA", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(valor, "BAJA", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(valor, "INHABILITADO", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -13,6 +13,7 @@ namespace proU1G7_jameza1_jsremache1.Models
         {
             Aeropuertos = new List<SelectListItem>();
             Destinos = new List<SelectListItem>();
+            UsuariosReserva = new List<SelectListItem>();
             TiposDocumento = new List<SelectListItem>();
             Vuelos = new List<VueloTarjetaViewModel>();
             Itinerarios = new List<ItinerarioTarjetaViewModel>();
@@ -28,10 +29,12 @@ namespace proU1G7_jameza1_jsremache1.Models
             Comprobantes = new List<ComprobanteInterfazViewModel>();
             NotasCredito = new List<NotaCreditoInterfazViewModel>();
             RevisionesOperativas = new List<RevisionOperativaViewModel>();
+            PasesAbordaje = new List<PaseAbordajeViewModel>();
         }
 
         public string Origen { get; set; }
         public string Destino { get; set; }
+        public string UsuarioReservaId { get; set; }
         public DateTime? FechaViaje { get; set; }
         public int CantidadPasajeros { get; set; }
         public int? VueloId { get; set; }
@@ -51,6 +54,7 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string Moneda { get; set; }
         public IList<SelectListItem> Aeropuertos { get; set; }
         public IList<SelectListItem> Destinos { get; set; }
+        public IList<SelectListItem> UsuariosReserva { get; set; }
         public IList<SelectListItem> TiposDocumento { get; set; }
         public IList<VueloTarjetaViewModel> Vuelos { get; set;}
         public IList<ItinerarioTarjetaViewModel> Itinerarios { get; set; }
@@ -75,6 +79,7 @@ namespace proU1G7_jameza1_jsremache1.Models
         public IList<ComprobanteInterfazViewModel> Comprobantes { get; set; }
         public IList<NotaCreditoInterfazViewModel> NotasCredito { get; set; }
         public IList<RevisionOperativaViewModel> RevisionesOperativas { get; set; }
+        public IList<PaseAbordajeViewModel> PasesAbordaje { get; set; }
     }
 
     public class RutaOperacionViewModel
@@ -162,6 +167,7 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string EstadoReserva { get; set; }
         public string EstadoCompra { get; set; }
         public bool PermitePago { get; set; }
+        public bool TienePasesAbordaje { get; set; }
         // CAMBIO: muestra las acciones permitidas según el estado persistido de la reserva.
         public bool PermiteCancelar { get; set; }
         public bool EsCompraPagada { get; set; }
@@ -197,6 +203,7 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string Nombre { get; set; }
         public string Correo { get; set; }
         public string Roles { get; set; }
+        public string RolAsignable { get; set; }
         public bool EsEditable { get; set; }
     }
 
@@ -272,6 +279,21 @@ namespace proU1G7_jameza1_jsremache1.Models
         public string CodigoReserva { get; set; }
         public string Motivo { get; set; }
         public DateTime FechaRegistro { get; set; }
+    }
+
+    public class PaseAbordajeViewModel
+    {
+        public string CodigoReserva { get; set; }
+        public string NombrePasajero { get; set; }
+        public string DocumentoEnmascarado { get; set; }
+        public string CodigoVuelo { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        public DateTime FechaVuelo { get; set; }
+        public string HoraSalida { get; set; }
+        public string HoraLlegada { get; set; }
+        public string Asiento { get; set; }
+        public DateTime FechaCheckIn { get; set; }
     }
 
     public class PasajeroAdministracionFormularioViewModel

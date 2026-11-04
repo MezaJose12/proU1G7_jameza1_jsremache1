@@ -1,5 +1,6 @@
 @model proU1G7_jameza1_jsremache1.Models.ReservaInterfazViewModel
 @{
+    var esPersonal = User.IsInRole("Counter") || User.IsInRole("Administrador") || User.IsInRole("SuperUsuario");
     ViewBag.Title = "Gestionar reserva";
 }
 <main class="container py-4" aria-labelledby="page-title">
@@ -14,14 +15,14 @@
         {
             <div class="alert alert-info" role="status">@TempData["Aviso"]</div>
         }
-        <div class="alert alert-info" role="status">DP-08 aprobada: una reserva pendiente se cancela sin penalización. Una compra pagada se cancela completa con al menos 24 horas antes del primer tramo: reembolso simulado del 100% con más de 48 horas o del 50% entre 24 y 48 horas. No se cancela con check-in realizado. No hay movimientos de dinero real.</div>
+        <div class="alert alert-info" role="status">Una reserva pendiente se cancela sin penalizacion. Una compra pagada se cancela completa con al menos 24 horas antes del primer tramo, con mas de 48 horas 100% de reembolso o del 50% entre 24 y 48 horas. No se cancela con check-in realizado.</div>
         if (Model.EsCompraPagada)
         {
             <div class="alert alert-warning" role="status">@Model.PoliticaCancelacion</div>
         }
         <section class="card shadow-sm mb-4"><div class="card-header bg-white"><h2 class="h5 mb-0">@Model.CodigoReserva</h2></div><div class="card-body">
             <dl class="row"><dt class="col-sm-4">Ruta</dt><dd class="col-sm-8">@Model.Ruta</dd><dt class="col-sm-4">Fecha de viaje</dt><dd class="col-sm-8">@(Model.FechaViaje.HasValue ? Model.FechaViaje.Value.ToString("dd/MM/yyyy") : "-")</dd><dt class="col-sm-4">Pasajeros</dt><dd class="col-sm-8">@Model.CantidadPasajeros</dd><dt class="col-sm-4">Estado</dt><dd class="col-sm-8">@Model.EstadoReserva</dd><dt class="col-sm-4">Compra</dt><dd class="col-sm-8">@Model.EstadoCompra</dd></dl>
-            if (Model.Tramos != null && Model.Tramos.Count > 0)
+            @if (Model.Tramos != null && Model.Tramos.Count > 0)
             {
                 <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Vuelo</th><th>Ruta</th><th>Fecha</th><th>Pasajero</th><th>Asiento</th></tr></thead><tbody>
                     @foreach (var tramo in Model.Tramos)
@@ -32,16 +33,23 @@
             }
         </div></section>
         <div class="d-flex flex-wrap gap-2">
-            @Html.RouteLink("Volver a mis reservas", "MyReservations", null, new { @class = "btn btn-outline-secondary" })
+            @if (esPersonal)
+            {
+                @Html.ActionLink("Volver a reservas", "AdminReservas", "Interfaces", null, new { @class = "btn btn-outline-secondary" })
+            }
+            else
+            {
+                @Html.RouteLink("Volver a mis reservas", "MyReservations", null, new { @class = "btn btn-outline-secondary" })
+            }
             @Html.RouteLink("Ver comprobantes", "Receipts", null, new { @class = "btn btn-outline-primary" })
             @if (Model.PermiteCancelar)
             {
-                using (Html.BeginForm("SolicitarCancelacion", "Interfaces", new { id = Model.ReservaId }, FormMethod.Post, new { onsubmit = "return confirm('Deseas continuar con esta operación?');" }))
+                using (Html.BeginForm("SolicitarCancelacion", "Interfaces", new { id = Model.ReservaId }, FormMethod.Post, new { onsubmit = "return confirm('Deseas continuar con esta operacion?');" }))
                 {
                     @Html.AntiForgeryToken()
                     if (Model.EsCompraPagada)
                     {
-                        <button type="submit" class="btn btn-outline-danger">Confirmar cancelación y nota de crédito</button>
+                        <button type="submit" class="btn btn-outline-danger">Confirmar cancelacion y nota de credito</button>
                     }
                     else
                     {

@@ -11,7 +11,7 @@ using proU1G7_jameza1_jsremache1.Models;
 namespace proU1G7_jameza1_jsremache1.Controllers
 {
     // CAMBIO: restringir la edición de los tramos asignados a cada itinerario.
-    [Authorize(Roles = "Administrador,SuperUsuario")]
+    [AutorizacionAdministrativa]
     public class TramoItinerariosController : Controller
     {
         private AerolineaVIPEntities db = new AerolineaVIPEntities();
